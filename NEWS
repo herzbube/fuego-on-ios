@@ -1,5 +1,10 @@
 This file contains information about Fuego releases.
 
+Current development version (branch VERSION_0_1_FIXES)
+======================================================
+
+* Fix bug in SgUctTreeIterator (some nodes were visited multiple times)
+
 Version 0.1 - 2008 May 30
 =========================
 
