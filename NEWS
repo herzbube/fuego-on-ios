@@ -7,6 +7,7 @@ Current development version (branch VERSION_0_1_FIXES)
 * Declare SgUctNode members volatile to avoid problems due to compiler
   write reorderings in lock-free mode
 * Changes to make it compile with GCC 4.3
+* Print startup message
 
 Version 0.1 - 2008 May 30
 =========================

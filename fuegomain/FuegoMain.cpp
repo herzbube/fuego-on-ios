@@ -7,6 +7,8 @@
 #include "SgSystem.h"
 
 #include <iostream>
+#include <sstream>
+#include <boost/preprocessor/stringize.hpp>
 #include "FuegoMainEngine.h"
 #include "GoInit.h"
 #include "SgCmdLineOpt.h"
@@ -69,6 +71,28 @@ void ParseOptions(int argc, char** argv)
         SgRandom::SetSeed(opt.GetInteger("srand"));
 }
 
+void PrintStartupMessage()
+{
+    ostringstream version;
+#ifdef VERSION
+    version << BOOST_PP_STRINGIZE(VERSION);
+#else
+    version << "(" __DATE__ ")";
+#endif
+#ifdef _DEBUG
+    version << " (dbg)";
+#endif
+    SgDebug()
+        << "Fuego " << version.str() << '\n' <<
+        "Copyright by the authors of the Fuego project.\n"
+        "See http://fuego.sf.net for information about Fuego. Fuego comes\n"
+        "with NO WARRANTY to the extent permitted by law. This program is\n"
+        "free software; you can redistribute it and/or modify it under the\n"
+        "terms of the GNU Lesser General Public License as published by the\n"
+        "Free Software Foundation - version 3. For more information about\n"
+        "these matters, see the files named COPYING and COPYING.LESSER\n";
+}
+
 } // namespace
 
 //----------------------------------------------------------------------------
@@ -94,6 +118,7 @@ int main(int argc, char** argv)
     {
         SgInit();
         GoInit();
+        PrintStartupMessage();
         MainLoop();
         GoFini();
         SgFini();
