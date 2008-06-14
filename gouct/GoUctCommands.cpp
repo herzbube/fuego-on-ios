@@ -710,9 +710,8 @@ void GoUctCommands::CmdSignatureCount(GtpCommand& cmd)
         {
             try
             {
-                const SgUctStatisticsBase& stat
-                    = search.GetSignatureStat(sig);
-                array[p] = str(format("%d") % stat.Count());
+                size_t count = search.GetSignatureStat(sig).Count();
+                array[p] = str(format("%d") % count);
             }
             catch (const SgException& e)
             {
@@ -742,10 +741,12 @@ void GoUctCommands::CmdSignatureValue(GtpCommand& cmd)
         {
             try
             {
-                const SgUctStatisticsBase& stat
-                    = search.GetSignatureStat(sig);
-                if (stat.Count() > 0)
-                    array[p] = str(format("%.2f") % stat.Mean());
+                size_t count = search.GetSignatureStat(sig).Count();
+                if (count > 0)
+                {
+                    float value = search.GetSignatureStat(sig).Mean();
+                    array[p] = str(format("%.2f") % value);
+                }
             }
             catch (const SgException& e)
             {

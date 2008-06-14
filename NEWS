@@ -4,6 +4,8 @@ Current development version (branch VERSION_0_1_FIXES)
 ======================================================
 
 * Fix bug in SgUctTreeIterator (some nodes were visited multiple times)
+* Declare SgUctNode members volatile to avoid problems due to compiler
+  write reorderings in lock-free mode
 
 Version 0.1 - 2008 May 30
 =========================
