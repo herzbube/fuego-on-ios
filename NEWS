@@ -4,6 +4,7 @@ Current development version (branch VERSION_0_1_FIXES)
 ======================================================
 
 * Fix bug in SgUctTreeIterator (some nodes were visited multiple times)
+* Fix bug that caused search not to work if number_playouts > 1
 * Declare SgUctNode members volatile to avoid problems due to compiler
   write reorderings in lock-free mode
 * Changes to make it compile with GCC 4.3

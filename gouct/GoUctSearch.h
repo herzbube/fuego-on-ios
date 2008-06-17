@@ -57,6 +57,8 @@ public:
 
     void GameStart();
 
+    void StartPlayout();
+
     void StartPlayouts();
 
     std::size_t GetSignature(SgMove mv) const;
