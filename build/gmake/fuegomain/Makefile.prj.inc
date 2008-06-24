@@ -11,7 +11,7 @@ VPATH = ../../..
 # Define unreleased Fuego development versions by appenending the SVN version
 # to the last released version.
 # Replace this line by release version for releases.
-FUEGO_VERSION= 0.1.SVN$(shell cd ../../..; svnversion)
+FUEGO_VERSION= 0.1.0.SVN$(shell cd ../../..; svnversion)
 
 DBG_OBJDIR = ../build/obj/$(NAME)/debug
 REL_OBJDIR = ../build/obj/$(NAME)/release
