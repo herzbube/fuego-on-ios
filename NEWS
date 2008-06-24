@@ -9,6 +9,7 @@ Current development version (branch VERSION_0_1_FIXES)
   write reorderings in lock-free mode
 * Changes to make it compile with GCC 4.3
 * Print startup message
+* Make GTP command uct_stat_policy_clear work
 
 Version 0.1 - 2008 May 30
 =========================
