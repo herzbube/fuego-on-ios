@@ -10,8 +10,7 @@ Current development version (branch VERSION_0_1_FIXES)
 * Changes to make it compile with GCC 4.3
 * Print startup message
 * Make GTP command uct_stat_policy_clear work
-* Fix assertion in GoUctGlobalSearchPlayer if live gfx is used after end of
-  game (two passes)
+* Fix bugs that caused rare crashes if live gfx is used for main Fuego player
 
 Version 0.1 - 2008 May 30
 =========================
