@@ -3,7 +3,7 @@ FUEGO_IS_RELEASE=0
 
 # Set to release version for releases or version of last release in this
 # branch for unreleased development versions
-FUEGO_RELEASE_VERSION=0.1
+FUEGO_RELEASE_VERSION=0.1.EGC2008
 
 # FUEGO_VERSION_FILE (which might be empty) should be used as a dependency
 # for targets that use FUEGO_VERSION
