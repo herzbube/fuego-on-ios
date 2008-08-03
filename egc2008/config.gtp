@@ -1,8 +1,8 @@
 # A node size is currently 56 bytes on a 64-bit machine and 32 bytes in a 32-bit
 # machine. If pondering/reuse_subtree is used, two trees must fit in memory.
-# For example, on a 32-bit machine, 1.5 GB can contain two trees of about
-# 23.000.000 nodes each.
-uct_param_player max_nodes 23000000
+# For example, on a 32-bit machine 1.7 GB can contain two trees of about
+# 26,000,000 nodes each.
+uct_param_player max_nodes 26000000
 
 # Set number f simulations to (practically) unlimited
 uct_param_player max_games 999999999
