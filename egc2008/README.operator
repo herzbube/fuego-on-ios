@@ -1,0 +1,51 @@
+== Compilation ==
+
+Make sure that the Boost libraries (http://boost.org) and header files are
+installed. On Linux, you can install them with the package manager of your
+distribution. Usually, the packages are named "boost" and "boost-devel", but
+sometimes they are split into several packages. We need the main Boost
+libraries and Boost.Thread.
+
+Change to the directory fuego/build/gmake and type "make release". The
+resulting executable is in fuego/build/gmake/build/release/fuego
+
+== Command line / Config file ==
+
+The command for the engine is "fuego -config config.gtp". The config file
+is in the egc2008 directory. It is possible to also use the option -size.
+The size option makes Fuego to only accept the specified board size, but it is
+not absolutely necessary for correct operation.
+
+Without the config file, the default settings of Fuego are not good for the
+tournament (fixed number of simulations, single-threaded, conservative memory
+limit). Have a look at the comments in the config file. The only thing that
+you might have to change is the maximum tree size and number of threads
+(depending on the memory and number of CPUs/cores available).
+
+However, should the engine crash (it shouldn't...), it might be a good idea
+to reconnect to KGS with a config file using safer settings (number_threads 1,
+reuse_subtree 0, pondering 0). It will play weaker, but maybe the crash can
+be avoided.
+
+If you don't run the program in the egc2008 directory, you will have to adjust
+the path to the opening book file in the config file. The opening book file is
+in book/book.dat.
+
+If any command in the config file fails, the engine will not start up. Just
+test manually to run "fuego -config config.gtp" on the command line, before
+using the command in the config file for kgsGtp.jar.
+
+== Known problems ==
+
+Pondering works only in regular games. With handicap stones or setup
+positions, pondering can cause the search to crash. This should be no problem,
+since no handicap games are played in the tournament.
+
+== KGS config files ==
+
+The egc2008 directory contains config files and startup scripts for kgsGtp.jar,
+which assume that they are run in this directory. The KGS config files still
+need the passwords to be filled in and have not been tested. They should be
+be checked and compared to what other participants use. The file kgsGtp.jar
+still needs to be downloaded from http://www.gokgs.com/download.xhtml and
+copied into this directory.

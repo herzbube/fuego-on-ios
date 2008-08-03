@@ -1,0 +1,33 @@
+# A node size is currently 56 bytes on a 64-bit machine and 32 bytes in a 32-bit
+# machine. If pondering/reuse_subtree is used, two trees must fit in memory.
+# For example, on a 32-bit machine, 1.5 GB can contain two trees of about
+# 23.000.000 nodes each.
+uct_param_player max_nodes 23000000
+
+# Set number f simulations to (practically) unlimited
+uct_param_player max_games 999999999
+
+# Obey time settings
+uct_param_player ignore_clock 0
+
+# Switch on pondering/reuse_subtree (thinking during opponents time)
+# Set both ponder and reuse_subtree to 0, if pondering/reuse_subtree causes
+# problems
+uct_param_player reuse_subtree 1
+uct_param_player ponder 1
+
+# Set KGS rules (Chinese, positional superko)
+go_rules kgs
+
+# Load opening book
+book_load ../book/book.dat
+
+# Use real time, not CPU time (only real time makes sense, if multi-threading)
+sg_param time_mode real
+
+# Number of threads
+uct_param_search number_threads 2
+
+# Lock-free tree access
+# (only guaranteed to work on Intel IA-32 and Intel-64 processors)
+uct_param_search lock_free 1
