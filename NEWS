@@ -5,6 +5,8 @@ Current development version (branch VERSION_0_1_FIXES)
 
 * Don't use log2() in SgFastLog (not yet part of the standard C++ library
   and broken implementation on some platforms)
+* Fix bug in SgUctTree::ApplyFilter() that caused a loss of values and counts
+  of the children of the root node, if reuse_subtree was enabled
 
 Version 0.1.1 - 2008 July 9
 ===========================
