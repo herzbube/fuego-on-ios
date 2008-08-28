@@ -23,4 +23,4 @@ then
 	CXXFLAGS="-DNDEBUG -O3 -g"
 fi
 
-AC_OUTPUT([Makefile book/Makefile fuegomain/Makefile fuegotest/Makefile go/Makefile gouct/Makefile gtpengine/Makefile simpleplayers/Makefile smartgame/Makefile unittestmain/Makefile])
+AC_OUTPUT([Makefile book/Makefile regression/Makefile fuegomain/Makefile fuegotest/Makefile go/Makefile gouct/Makefile gtpengine/Makefile simpleplayers/Makefile smartgame/Makefile unittestmain/Makefile])
