@@ -7,6 +7,11 @@ history.
 Current development version (branch VERSION_0_2_FIXES)
 ===========================
 
+*
+
+Version 0.2.1 - 2008 Sep 16
+===========================
+
 * Add regression tests, opening book, and doxygen files to distribution
 * Make VPATH builds with read-only source tree work
 * Remove unnecessary check for CppUnit in configure.in
