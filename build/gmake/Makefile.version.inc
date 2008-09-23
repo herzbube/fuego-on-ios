@@ -1,9 +1,9 @@
 # Set to 1 for releases, 0 for unreleased development versions
-FUEGO_IS_RELEASE=0
+FUEGO_IS_RELEASE=1
 
 # Set to release version for releases or version of last release in this
 # branch for unreleased development versions
-FUEGO_RELEASE_VERSION=OLYMPIAD2008
+FUEGO_RELEASE_VERSION=OLYMPIAD2008_1
 
 # FUEGO_VERSION_FILE (which might be empty) should be used as a dependency
 # for targets that use FUEGO_VERSION
