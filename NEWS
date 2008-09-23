@@ -9,6 +9,7 @@ Current development version (branch VERSION_0_2_FIXES)
 
 * Fix declaration/definition mismatch of GoBoardUtil::ScorePoint() that caused
   an error with Intel's ICC compiler
+* Fix bug in GoStaticLadder::IsEdgeLadder
 
 Version 0.2.1 - 2008 Sep 16
 ===========================
