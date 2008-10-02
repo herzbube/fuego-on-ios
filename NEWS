@@ -13,6 +13,8 @@ Current development version (branch VERSION_0_2_FIXES)
   cause default precision to be used as documented. Add precision paramter
   to SgNode::SetRealProp() and SgPropReal::SetValue().
 * Fix bug in GoStaticLadder::IsEdgeLadder
+* Lower requirement on Boost version in configure.in; Fuego still
+  compiles with version 1.33.1
 
 Version 0.2.1 - 2008 Sep 16
 ===========================
