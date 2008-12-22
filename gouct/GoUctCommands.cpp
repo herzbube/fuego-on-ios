@@ -525,7 +525,8 @@ void GoUctCommands::CmdParamRootFilter(GtpCommand& cmd)
     @arg @c live_gfx @c none|counts|sequence See GoUctSearch::LiveGfx
     @arg @c live_gfx_interval See GoUctSearch::LiveGfxInterval
     @arg @c max_nodes See SgUctSearch::MaxNodes
-    @arg @c move_select @c value|count|bound|rave See SgUctSearch::MoveSelect
+    @arg @c move_select @c value|count|bound|estimate
+        See SgUctSearch::MoveSelect
     @arg @c number_threads See SgUctSearch::NumberThreads
     @arg @c number_playouts See SgUctSearch::NumberPlayouts
     @arg @c prune_min_count See SgUctSearch::PruneMinCount
