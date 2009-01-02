@@ -1,5 +1,9 @@
 EXTRA_DIST = \
 run.sh \
+basics.suite \
+performance.suite \
+static_safety.suite \
+uct.suite \
 ladder.tst \
 performance_icgc2008.tst \
 repetition.tst \
