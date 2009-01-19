@@ -8,6 +8,7 @@ history.
 Current development version (branch VERSION_0_3_FIXES)
 ======================================================
 
+* Fix bug in GoBoardUtil::ReduceToAnchors (the version which passes SgSList)
 * Fix bug in SgTimeControl that caused it to allocate infinite time for move
   if GetPositionInfo() returned zero for remaining moves
 * Fix GoKomi::ToString() for komi -0.5
