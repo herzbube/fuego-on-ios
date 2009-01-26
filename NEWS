@@ -5,8 +5,8 @@ of changes in the main development branch, consult the version control
 history.
 
 
-Current development version (branch VERSION_0_3_FIXES)
-======================================================
+Version 0.3.1 - 2008 Jan 26
+===========================
 
 * Fix bug in GoBoardUtil::ReduceToAnchors (the version which passes SgSList)
 * Fix bug in SgTimeControl that caused it to allocate infinite time for move
