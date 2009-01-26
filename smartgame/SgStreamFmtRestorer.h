@@ -15,6 +15,8 @@
 /** Restore a stream formatting state.
     Automatically restores all formatting flags and parameters in its
     destructor.
+    @deprecated Will be removed in the future; use Boost IO State Savers
+    instead
 */
 class SgStreamFmtRestorer
 {

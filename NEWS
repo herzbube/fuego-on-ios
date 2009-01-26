@@ -13,6 +13,7 @@ Current development version (branch VERSION_0_3_FIXES)
   if GetPositionInfo() returned zero for remaining moves
 * Fix GoKomi::ToString() for komi -0.5
 * Add missing files regression/*.suite to distribution
+* Mark SgStreamFmtRestorer as deprecated
 * Small fixes in documentation
 
 
