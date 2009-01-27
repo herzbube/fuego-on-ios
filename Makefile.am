@@ -47,8 +47,10 @@ doc/fuegomain/Makefile \
 doc/fuegomain/pages/mainpage.cpp \
 doc/fuegomain/doxygen.cfg \
 doc/general/Makefile \
+doc/general/pages/autotools.cpp \
 doc/general/pages/mainpage.cpp \
 doc/general/pages/modules.cpp \
+doc/general/pages/portability.cpp \
 doc/general/pages/style.cpp \
 doc/general/doxygen.cfg \
 doc/gtpengine/Makefile \
