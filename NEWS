@@ -9,6 +9,8 @@ Current development version (branch VERSION_0_3_FIXES)
 ======================================================
 
 * Add missing files in doc/general/pages/ to distribution
+* Fix bug in extraction of directory of the executable that is used for looking
+  for the opening book file and was broken on some platforms
 
 
 Version 0.3.1 - 2008 Jan 26
