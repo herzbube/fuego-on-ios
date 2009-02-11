@@ -15,6 +15,7 @@ Current development version (branch VERSION_0_3_FIXES)
   value in SgUctAllocator::Create()
 * Fix bug in RAVE weight function: SgUctSearch::m_raveParam2 was set to
   m_raveWeightInitial / m_raveWeightFinal, instead of 1 / m_raveWeightFinal
+* Small fixes in the documentation
 
 
 Version 0.3.1 - 2008 Jan 26
