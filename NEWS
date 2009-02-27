@@ -16,7 +16,7 @@ Version 0.3.2 - 2009 Feb 27
 
 * Add missing files in doc/general/pages/ to distribution
 * Fix bug in extraction of directory of the executable that is used for looking
-  for the opening book file and was broken on Windows if the path containes
+  for the opening book file and was broken on Windows if the path contained
   spaces
 * Avoid dynamic memory allocation caused by unnecessary passing of argument by
   value in SgUctAllocator::Create()
