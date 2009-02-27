@@ -5,12 +5,13 @@ of changes in the main development branch, consult the version control
 history.
 
 
-Current development version (branch VERSION_0_3_FIXES)
-======================================================
+Version 0.3.2 - 2009 Feb 27
+===========================
 
 * Add missing files in doc/general/pages/ to distribution
 * Fix bug in extraction of directory of the executable that is used for looking
-  for the opening book file and was broken on some platforms
+  for the opening book file and was broken on Windows if the path containes
+  spaces
 * Avoid dynamic memory allocation caused by unnecessary passing of argument by
   value in SgUctAllocator::Create()
 * Fix bug in RAVE weight function: SgUctSearch::m_raveParam2 was set to
@@ -18,7 +19,7 @@ Current development version (branch VERSION_0_3_FIXES)
 * Small fixes in the documentation
 
 
-Version 0.3.1 - 2008 Jan 26
+Version 0.3.1 - 2009 Jan 26
 ===========================
 
 * Fix bug in GoBoardUtil::ReduceToAnchors (the version which passes SgSList)
