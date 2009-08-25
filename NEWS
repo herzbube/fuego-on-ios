@@ -9,6 +9,7 @@ Current development version (branch VERSION_0_4_FIXES)
 
 * Fix bug in set_free_handicap that made the player engine not know about the
   placed handicap stones
+* Add missing include in GoSetupUtil.cpp to make it compile with GCC 4.4.0 
 
 
 Version 0.4 - 2009 May 22
