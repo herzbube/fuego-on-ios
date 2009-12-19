@@ -12,6 +12,9 @@ Current development version (branch VERSION_0_4_FIXES)
 * Add missing include in GoSetupUtil.cpp to make it compile with GCC 4.4.0 
 * Workaround in GtpCommand::SizeTypeArg() for bug in standard library of some 
   GCC versions
+* Fix bug in configure.ac that made it impossible to use user-defined CXXFLAGS
+  because the overwriting of the CXXFLAGS could no longer be switched off
+  with --enable-optimize=no
 
 Version 0.4 - 2009 May 22
 =========================

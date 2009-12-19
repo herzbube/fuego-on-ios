@@ -23,8 +23,6 @@ AC_ARG_ENABLE([optimize],
 if test "x$optimize" = "xyes"
 then
 	CXXFLAGS="-O3 -g"
-else
-	CXXFLAGS="-g"
 fi
 
 AC_ARG_ENABLE([assert],
