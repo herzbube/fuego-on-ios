@@ -8,7 +8,7 @@ history.
 Current development version (branch VERSION_1_FIXES)
 ====================================================
 
-*
+* Fixed compilation error if HOST_CPU was undefined
 
 
 Version 1.0 - 2010 Jan 23
