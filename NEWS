@@ -11,7 +11,8 @@ Current development version (branch VERSION_1_FIXES)
 * Added missing doxygen documentation source files to distribution
 * Fixed compilation error if HOST_CPU was undefined
 * Set default for lock-free search to true if HOST_CPU is i686
-
+* Implement cgos-gameover to fix unnecessary pondering with CGOS Python client
+  after game is over
 
 Version 1.0 - 2010 Jan 23
 =========================
