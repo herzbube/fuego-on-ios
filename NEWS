@@ -14,8 +14,10 @@ Current development version (branch VERSION_1_FIXES)
 * Implement cgos-gameover to fix unnecessary pondering with CGOS Python client
   after game is over
 * Avoid a crash if more than 2 GB are allocated on 32-bit Windoes systems
-  without support for large memory addresses (ticket #73)
+  without support for large memory addresses (tickets #73, #76)
 * Updated documentation for 64-bit compilation on Windows (ticket #73)
+* configure.ac: removed GCC warning flags -Wconversion, -ansi, -pedantic,
+  because they generate warnings with Boost 1.45
 
 Version 1.0 - 2010 Jan 23
 =========================
