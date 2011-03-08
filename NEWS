@@ -13,6 +13,7 @@ Current development version (branch VERSION_1_FIXES)
 * Set default for lock-free search to true if HOST_CPU is i686
 * Implement cgos-gameover to fix unnecessary pondering with CGOS Python client
   after game is over
+* Updated documentation for 64-bit comilation on Windows
 
 Version 1.0 - 2010 Jan 23
 =========================
