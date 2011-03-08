@@ -13,7 +13,9 @@ Current development version (branch VERSION_1_FIXES)
 * Set default for lock-free search to true if HOST_CPU is i686
 * Implement cgos-gameover to fix unnecessary pondering with CGOS Python client
   after game is over
-* Updated documentation for 64-bit comilation on Windows
+* Avoid a crash if more than 2 GB are allocated on 32-bit Windoes systems
+  without support for large memory addresses (ticket #73)
+* Updated documentation for 64-bit compilation on Windows (ticket #73)
 
 Version 1.0 - 2010 Jan 23
 =========================
