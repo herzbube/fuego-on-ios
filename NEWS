@@ -17,7 +17,7 @@ Version 1.1 - 2011 Mar 11
 * Set default for lock-free search to true if HOST_CPU is i686
 * Implement cgos-gameover to fix unnecessary pondering with CGOS Python client
   after game is over
-* Avoid a crash if more than 2 GB are allocated on 32-bit Windoes systems
+* Avoid a crash if more than 2 GB are allocated on 32-bit Windows systems
   without support for large memory addresses (tickets #73, #76)
   The default memory used is now limited to 1 GB and the number od threads
   to 4. The expand threshold is set to 3.
