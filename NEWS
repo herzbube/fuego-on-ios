@@ -20,6 +20,8 @@ Current development version (branch VERSION_1_FIXES)
 * Updated documentation for 64-bit compilation on Windows (ticket #73)
 * configure.ac: removed GCC warning flags -Wconversion, -ansi, -pedantic,
   because they generate warnings with Boost 1.45
+* Check for existence of sys/sysctl.h with autoconf and use it in SgPlatform
+  only if it exists.
 
 Version 1.0 - 2010 Jan 23
 =========================
