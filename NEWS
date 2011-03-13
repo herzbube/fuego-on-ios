@@ -5,8 +5,8 @@ of changes in the main development branch, consult the version control
 history.
 
 
-Current development version (branch VERSION_1_FIXES)
-====================================================
+Version 1.1 - 2011 Mar 11
+=========================
 
 * Added missing doxygen documentation source files to distribution
 * Fixed compilation error if HOST_CPU was undefined
@@ -23,7 +23,7 @@ Current development version (branch VERSION_1_FIXES)
 * Check for existence of sys/sysctl.h with autoconf and use it in SgPlatform
   only if it exists.
 
-Version 1.0 - 2010 Jan 23
+Version 1.0 - 2011 Jan 23
 =========================
 
 * Command line option parsing is now done with boost::program_options.
