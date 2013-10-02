@@ -50,6 +50,9 @@ PLATFORMS_BASEDIR="$XCODE_ROOT/Platforms"
 IPHONEOS_PLATFORMDIR="$PLATFORMS_BASEDIR/iPhoneOS.platform"
 IPHONE_SIMULATOR_PLATFORMDIR="$PLATFORMS_BASEDIR/iPhoneSimulator.platform"
 
+IPHONEOS_BJAM_TOOLSET="${IPHONE_SDKVERSION}~iphone"
+IPHONE_SIMULATOR_BJAM_TOOLSET="${IPHONE_SDKVERSION}~iphonesim"
+
 ARM_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
 SIM_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
 ARM_AR="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find ar)"
@@ -109,12 +112,12 @@ updateBoost()
 	popd >/dev/null
 
 	cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
-using darwin : ${IPHONE_SDKVERSION}~iphone
+using darwin : $IPHONEOS_BJAM_TOOLSET
    : $ARM_COMPILER -arch armv6 -arch armv7 -arch armv7s -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper> <root>$IPHONEOS_PLATFORMDIR/Developer
    : <architecture>arm <target-os>iphone
    ;
-using darwin : ${IPHONE_SDKVERSION}~iphonesim
+using darwin : $IPHONE_SIMULATOR_BJAM_TOOLSET
    : $SIM_COMPILER -arch i386 -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper> <root>$IPHONE_SIMULATOR_PLATFORMDIR/Developer
    : <architecture>x86 <target-os>iphone
@@ -153,11 +156,11 @@ buildBoostForiPhoneOS()
     cd $BOOST_SRC
     
 	# Install this one so we can copy the includes for the frameworks...
-    ./bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static stage
-    ./bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static install
+    ./bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static stage
+    ./bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static install
     doneSection
 
-    ./bjam -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage --toolset=darwin architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static stage
+    ./bjam -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage --toolset=darwin-$IPHONE_SIMULATOR_BJAM_TOOLSET architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static stage
 	doneSection
 }
 
