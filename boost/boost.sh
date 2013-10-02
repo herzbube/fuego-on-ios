@@ -174,43 +174,42 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
 {
 	cd $SRCDIR
 
-    mkdir -p $IOSBUILDDIR/armv6/obj
-    mkdir -p $IOSBUILDDIR/armv7/obj
-    mkdir -p $IOSBUILDDIR/armv7s/obj
-    mkdir -p $IOSBUILDDIR/i386/obj
-
-    ALL_LIBS=""
-
     echo Splitting all existing fat binaries...
     for NAME in $BOOST_LIBS; do
-        ALL_LIBS="$ALL_LIBS libboost_$NAME.a"
+        LIB_FILENAME="libboost_$NAME.a"
+        OBJ_DIRNAME="obj_$NAME"
 
-        $ARM_LIPO "iphone-build/stage/lib/libboost_$NAME.a" -thin armv6 -o $IOSBUILDDIR/armv6/libboost_$NAME.a
-        $ARM_LIPO "iphone-build/stage/lib/libboost_$NAME.a" -thin armv7 -o $IOSBUILDDIR/armv7/libboost_$NAME.a
-        $ARM_LIPO "iphone-build/stage/lib/libboost_$NAME.a" -thin armv7s -o $IOSBUILDDIR/armv7s/libboost_$NAME.a
+        echo Decomposing $LIB_FILENAME...
 
-        cp "iphonesim-build/stage/lib/libboost_$NAME.a" $IOSBUILDDIR/i386/
+        # Must have separate obj folders for each library, because separate libraries may
+        # contain object files with the same name
+        mkdir -p $IOSBUILDDIR/armv6/$OBJ_DIRNAME
+        mkdir -p $IOSBUILDDIR/armv7/$OBJ_DIRNAME
+        mkdir -p $IOSBUILDDIR/armv7s/$OBJ_DIRNAME
+        mkdir -p $IOSBUILDDIR/i386/$OBJ_DIRNAME
+
+        $ARM_LIPO "iphone-build/stage/lib/$LIB_FILENAME" -thin armv6 -o $IOSBUILDDIR/armv6/$LIB_FILENAME
+        $ARM_LIPO "iphone-build/stage/lib/$LIB_FILENAME" -thin armv7 -o $IOSBUILDDIR/armv7/$LIB_FILENAME
+        $ARM_LIPO "iphone-build/stage/lib/$LIB_FILENAME" -thin armv7s -o $IOSBUILDDIR/armv7s/$LIB_FILENAME
+
+        cp "iphonesim-build/stage/lib/$LIB_FILENAME" $IOSBUILDDIR/i386/
+
+        (cd $IOSBUILDDIR/armv6/$OBJ_DIRNAME; ar -x ../$LIB_FILENAME );
+        (cd $IOSBUILDDIR/armv7/$OBJ_DIRNAME; ar -x ../$LIB_FILENAME );
+        (cd $IOSBUILDDIR/armv7s/$OBJ_DIRNAME; ar -x ../$LIB_FILENAME );
+        (cd $IOSBUILDDIR/i386/$OBJ_DIRNAME; ar -x ../$LIB_FILENAME );
     done
 
-    echo "Decomposing each architecture's .a files"
-    for NAME in $ALL_LIBS; do
-        echo Decomposing $NAME...
-        (cd $IOSBUILDDIR/armv6/obj; ar -x ../$NAME );
-        (cd $IOSBUILDDIR/armv7/obj; ar -x ../$NAME );
-        (cd $IOSBUILDDIR/armv7s/obj; ar -x ../$NAME );
-        (cd $IOSBUILDDIR/i386/obj; ar -x ../$NAME );
-    done
-
-    echo "Linking each architecture into an uberlib ($ALL_LIBS => libboost.a )"
+    echo "Linking each architecture into an uberlib => libboost.a"
     rm $IOSBUILDDIR/*/libboost.a
     echo ...armv6
-    (cd $IOSBUILDDIR/armv6; $ARM_AR crus libboost.a obj/*.o; )
+    (cd $IOSBUILDDIR/armv6; $ARM_AR crus libboost.a obj_*/*.o; )
     echo ...armv7
-    (cd $IOSBUILDDIR/armv7; $ARM_AR crus libboost.a obj/*.o; )
+    (cd $IOSBUILDDIR/armv7; $ARM_AR crus libboost.a obj_*/*.o; )
     echo ...armv7s
-    (cd $IOSBUILDDIR/armv7s; $ARM_AR crus libboost.a obj/*.o; )
+    (cd $IOSBUILDDIR/armv7s; $ARM_AR crus libboost.a obj_*/*.o; )
     echo ...i386
-    (cd $IOSBUILDDIR/i386;  $SIM_AR crus libboost.a obj/*.o; )
+    (cd $IOSBUILDDIR/i386;  $SIM_AR crus libboost.a obj_*/*.o; )
 }
 
 #===============================================================================
