@@ -1,3 +1,9 @@
 boost/ios/
 boost/iphone-build/
 boost/iphonesim-build/
+build.log
+fuego-on-ios.xcodeproj/xcuserdata/
+fuego-on-ios.xcodeproj/project.xcworkspace/
+build/
+DerivedData/
+ios/
