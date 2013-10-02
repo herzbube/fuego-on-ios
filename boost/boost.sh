@@ -40,7 +40,7 @@
 : ${OSXFRAMEWORKDIR:=`pwd`/osx/framework}
 : ${COMPILER:="clang++"}
 
-BOOST_SRC=$SRCDIR/boost
+BOOST_SRC=$SRCDIR/boost-trunk
 
 #===============================================================================
 
