@@ -91,20 +91,16 @@ updateBoost()
 {
     echo Updating boost into $BOOST_SRC...
 
-	if [ -d $BOOST_SRC ]
-	then
-		# Remove everything not under version control...
-		svn st --no-ignore $BOOST_SRC | egrep '^[?I]' | sed 's:.......::' | xargs rm -rf 
-		svn update boost
-	else
-		BOOST_BRANCH=`svn ls http://svn.boost.org/svn/boost/tags/release/ | sort | tail -1`
-		svn co http://svn.boost.org/svn/boost/tags/release/$BOOST_BRANCH boost
-	fi
+	# No need to git fetch, we expect that the submodule is up-to-date
 
-	svn st $BOOST_SRC/tools/build/v2/user-config.jam | grep '^M'
-	if [ $? != 0 ]
-	then
-    	cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
+	pushd $BOOST_SRC >/dev/null
+	# Remove everything not under version control...
+	git clean -dfx
+	# Throw away local changes (i.e. modifications to user-config.jam)
+	git reset --hard
+	popd >/dev/null
+
+	cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
 using darwin : ${IPHONE_SDKVERSION}~iphone
    : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/$COMPILER -arch armv6 -arch armv7 -arch armv7s -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
    : <striper> <root>$XCODE_ROOT/Platforms/iPhoneOS.platform/Developer
@@ -116,7 +112,6 @@ using darwin : ${IPHONE_SDKVERSION}~iphonesim
    : <architecture>x86 <target-os>iphone
    ;
 EOF
-	fi
 
     doneSection
 }
@@ -299,7 +294,7 @@ mkdir -p $IOSBUILDDIR
 cleanEverythingReadyToStart
 updateBoost
 
-BOOST_VERSION=`svn info $BOOST_SRC | grep URL | sed -e 's/^.*\/Boost_\([^\/]*\)/\1/'`
+BOOST_VERSION=`cd $BOOST_SRC; git describe --tags | sed -e 's/^.*\/Boost_\([^\/]*\)/\1/'`
 echo "BOOST_VERSION:     $BOOST_VERSION"
 echo "BOOST_LIBS:        $BOOST_LIBS"
 echo "BOOST_SRC:         $BOOST_SRC"
