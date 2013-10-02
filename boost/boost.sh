@@ -18,7 +18,7 @@
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
-: ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
+: ${BOOST_LIBS:="thread filesystem program_options system test date_time"}
 : ${IPHONE_SDKVERSION:=6.0}
 : ${IPHONE_DEPLOYMENT_TARGET:=5.0}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
@@ -308,5 +308,7 @@ scrunchAllLibsTogetherInOneLibPerPlatform
 buildFramework $IOSFRAMEWORKDIR $IOSBUILDDIR
 
 echo "Completed successfully"
+echo "The framework is located here: $IOSFRAMEWORKDIR/$FRAMEWORK_NAME.framework"
+echo "Enjoy."
 
 #===============================================================================
