@@ -44,8 +44,21 @@ BOOST_SRC=$SRCDIR/boost-trunk
 
 #===============================================================================
 
-ARM_DEV_DIR=$XCODE_ROOT/Platforms/iPhoneOS.platform/Developer/usr/bin/
-SIM_DEV_DIR=$XCODE_ROOT/Platforms/iPhoneSimulator.platform/Developer/usr/bin/
+IPHONEOS_SDKPREFIX="iphoneos"
+IPHONEOS_SDKNAME="${IPHONEOS_SDKPREFIX}${IPHONE_SDKVERSION}"
+IPHONE_SIMULATOR_SDKPREFIX="iphonesimulator"
+IPHONE_SIMULATOR_SDKNAME="${IPHONE_SIMULATOR_SDKPREFIX}${IPHONE_SDKVERSION}"
+
+PLATFORMS_BASEDIR="$XCODE_ROOT/Platforms"
+IPHONEOS_PLATFORMDIR="$PLATFORMS_BASEDIR/iPhoneOS.platform"
+IPHONE_SIMULATOR_PLATFORMDIR="$PLATFORMS_BASEDIR/iPhoneSimulator.platform"
+
+ARM_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
+SIM_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
+ARM_AR="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find ar)"
+SIM_AR="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find ar)"
+ARM_COMPILER="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find $COMPILER)"
+SIM_COMPILER="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find $COMPILER)"
 
 ARM_COMBINED_LIB=$IOSBUILDDIR/lib_boost_arm.a
 SIM_COMBINED_LIB=$IOSBUILDDIR/lib_boost_x86.a
@@ -102,13 +115,13 @@ updateBoost()
 
 	cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
 using darwin : ${IPHONE_SDKVERSION}~iphone
-   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/$COMPILER -arch armv6 -arch armv7 -arch armv7s -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
-   : <striper> <root>$XCODE_ROOT/Platforms/iPhoneOS.platform/Developer
+   : $ARM_COMPILER -arch armv6 -arch armv7 -arch armv7s -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
+   : <striper> <root>$IPHONEOS_PLATFORMDIR/Developer
    : <architecture>arm <target-os>iphone
    ;
 using darwin : ${IPHONE_SDKVERSION}~iphonesim
-   : $XCODE_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin/$COMPILER -arch i386 -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
-   : <striper> <root>$XCODE_ROOT/Platforms/iPhoneSimulator.platform/Developer
+   : $SIM_COMPILER -arch i386 -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
+   : <striper> <root>$IPHONE_SIMULATOR_PLATFORMDIR/Developer
    : <architecture>x86 <target-os>iphone
    ;
 EOF
@@ -124,7 +137,7 @@ inventMissingHeaders()
     # They are supported on the device, so we copy them from x86 SDK to a staging area
     # to use them on ARM, too.
     echo Invent missing headers
-    cp $XCODE_ROOT/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator${IPHONE_SDKVERSION}.sdk/usr/include/{crt_externs,bzlib}.h $BOOST_SRC
+    cp $IPHONE_SIMULATOR_PLATFORMDIR/Developer/SDKs/iPhoneSimulator${IPHONE_SDKVERSION}.sdk/usr/include/{crt_externs,bzlib}.h $BOOST_SRC
 }
 
 #===============================================================================
@@ -176,14 +189,14 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
     for NAME in $BOOST_LIBS; do
         ALL_LIBS="$ALL_LIBS libboost_$NAME.a"
 
-        $ARM_DEV_DIR/lipo "iphone-build/stage/lib/libboost_$NAME.a" -thin armv6 -o $IOSBUILDDIR/armv6/libboost_$NAME.a
-        $ARM_DEV_DIR/lipo "iphone-build/stage/lib/libboost_$NAME.a" -thin armv7 -o $IOSBUILDDIR/armv7/libboost_$NAME.a
-        $ARM_DEV_DIR/lipo "iphone-build/stage/lib/libboost_$NAME.a" -thin armv7s -o $IOSBUILDDIR/armv7s/libboost_$NAME.a
+        $ARM_LIPO "iphone-build/stage/lib/libboost_$NAME.a" -thin armv6 -o $IOSBUILDDIR/armv6/libboost_$NAME.a
+        $ARM_LIPO "iphone-build/stage/lib/libboost_$NAME.a" -thin armv7 -o $IOSBUILDDIR/armv7/libboost_$NAME.a
+        $ARM_LIPO "iphone-build/stage/lib/libboost_$NAME.a" -thin armv7s -o $IOSBUILDDIR/armv7s/libboost_$NAME.a
 
         cp "iphonesim-build/stage/lib/libboost_$NAME.a" $IOSBUILDDIR/i386/
 
-        $ARM_DEV_DIR/lipo "osx-build/stage/lib/libboost_$NAME.a" -thin i386 -o $OSXBUILDDIR/i386/libboost_$NAME.a
-        $ARM_DEV_DIR/lipo "osx-build/stage/lib/libboost_$NAME.a" -thin x86_64 -o $OSXBUILDDIR/x86_64/libboost_$NAME.a
+        $ARM_LIPO "osx-build/stage/lib/libboost_$NAME.a" -thin i386 -o $OSXBUILDDIR/i386/libboost_$NAME.a
+        $ARM_LIPO "osx-build/stage/lib/libboost_$NAME.a" -thin x86_64 -o $OSXBUILDDIR/x86_64/libboost_$NAME.a
     done
 
     echo "Decomposing each architecture's .a files"
@@ -201,20 +214,20 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
     echo "Linking each architecture into an uberlib ($ALL_LIBS => libboost.a )"
     rm $IOSBUILDDIR/*/libboost.a
     echo ...armv6
-    (cd $IOSBUILDDIR/armv6; $ARM_DEV_DIR/ar crus libboost.a obj/*.o; )
+    (cd $IOSBUILDDIR/armv6; $ARM_AR crus libboost.a obj/*.o; )
     echo ...armv7
-    (cd $IOSBUILDDIR/armv7; $ARM_DEV_DIR/ar crus libboost.a obj/*.o; )
+    (cd $IOSBUILDDIR/armv7; $ARM_AR crus libboost.a obj/*.o; )
     echo ...armv7s
-    (cd $IOSBUILDDIR/armv7s; $ARM_DEV_DIR/ar crus libboost.a obj/*.o; )
+    (cd $IOSBUILDDIR/armv7s; $ARM_AR crus libboost.a obj/*.o; )
     echo ...i386
-    (cd $IOSBUILDDIR/i386;  $SIM_DEV_DIR/ar crus libboost.a obj/*.o; )
+    (cd $IOSBUILDDIR/i386;  $SIM_AR crus libboost.a obj/*.o; )
 
     rm $OSXBUILDDIR/*/libboost.a
     echo ...osx-i386
-    (cd $OSXBUILDDIR/i386;  $SIM_DEV_DIR/ar crus libboost.a obj/*.o; )
+    (cd $OSXBUILDDIR/i386;  $SIM_AR crus libboost.a obj/*.o; )
 
     echo ...x86_64
-    (cd $OSXBUILDDIR/x86_64;  $SIM_DEV_DIR/ar crus libboost.a obj/*.o; )
+    (cd $OSXBUILDDIR/x86_64;  $SIM_AR crus libboost.a obj/*.o; )
 }
 
 #===============================================================================
@@ -254,7 +267,7 @@ buildFramework()
     FRAMEWORK_INSTALL_NAME=$FRAMEWORK_BUNDLE/Versions/$FRAMEWORK_VERSION/$FRAMEWORK_NAME
 
     echo "Lipoing library into $FRAMEWORK_INSTALL_NAME..."
-    $ARM_DEV_DIR/lipo -create $BUILDDIR/*/libboost.a -o "$FRAMEWORK_INSTALL_NAME" || abort "Lipo $1 failed"
+    $ARM_LIPO -create $BUILDDIR/*/libboost.a -o "$FRAMEWORK_INSTALL_NAME" || abort "Lipo $1 failed"
 
     echo "Framework: Copying includes..."
     cp -r $PREFIXDIR/include/boost/*  $FRAMEWORK_BUNDLE/Headers/
