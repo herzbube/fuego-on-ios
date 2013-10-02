@@ -19,7 +19,7 @@
 #===============================================================================
 
 : ${BOOST_LIBS:="thread filesystem program_options system test date_time"}
-: ${IPHONE_SDKVERSION:=6.0}
+: ${IPHONE_SDKVERSION:=6.1}
 : ${IPHONE_DEPLOYMENT_TARGET:=5.0}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
 : ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -std=c++11 -stdlib=libc++"}
