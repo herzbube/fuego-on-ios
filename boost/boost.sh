@@ -20,6 +20,7 @@
 
 : ${BOOST_LIBS:="thread signals filesystem regex system date_time"}
 : ${IPHONE_SDKVERSION:=6.0}
+: ${IPHONE_DEPLOYMENT_TARGET:=5.0}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
 : ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -std=c++11 -stdlib=libc++"}
 
@@ -52,6 +53,9 @@ IPHONE_SIMULATOR_PLATFORMDIR="$PLATFORMS_BASEDIR/iPhoneSimulator.platform"
 
 IPHONEOS_BJAM_TOOLSET="${IPHONE_SDKVERSION}~iphone"
 IPHONE_SIMULATOR_BJAM_TOOLSET="${IPHONE_SDKVERSION}~iphonesim"
+
+IPHONEOS_CPPFLAGS="-miphoneos-version-min=$IPHONE_DEPLOYMENT_TARGET $EXTRA_CPPFLAGS"
+IPHONE_SIMULATOR_CPPFLAGS="-mios-simulator-version-min=$IPHONE_DEPLOYMENT_TARGET $EXTRA_CPPFLAGS"
 
 ARM_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
 SIM_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
@@ -113,12 +117,12 @@ updateBoost()
 
 	cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
 using darwin : $IPHONEOS_BJAM_TOOLSET
-   : $ARM_COMPILER -arch armv6 -arch armv7 -arch armv7s -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
+   : $ARM_COMPILER -arch armv6 -arch armv7 -arch armv7s -fvisibility=hidden -fvisibility-inlines-hidden $IPHONEOS_CPPFLAGS
    : <striper> <root>$IPHONEOS_PLATFORMDIR/Developer
    : <architecture>arm <target-os>iphone
    ;
 using darwin : $IPHONE_SIMULATOR_BJAM_TOOLSET
-   : $SIM_COMPILER -arch i386 -fvisibility=hidden -fvisibility-inlines-hidden $EXTRA_CPPFLAGS
+   : $SIM_COMPILER -arch i386 -fvisibility=hidden -fvisibility-inlines-hidden $IPHONE_SIMULATOR_CPPFLAGS
    : <striper> <root>$IPHONE_SIMULATOR_PLATFORMDIR/Developer
    : <architecture>x86 <target-os>iphone
    ;
