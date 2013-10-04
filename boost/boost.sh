@@ -36,7 +36,7 @@
 : ${IOSBUILDDIR:=`pwd`/ios/build}
 : ${PREFIXDIR:=`pwd`/ios/prefix}
 : ${IOSFRAMEWORKDIR:=`pwd`/ios/framework}
-: ${COMPILER:="clang++"}
+: ${COMPILER:="clang"}
 
 BOOST_SRC=$SRCDIR/boost-trunk
 
