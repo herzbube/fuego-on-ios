@@ -20,17 +20,11 @@ CONFIGURATION="Release"
 BUILD_FOLDER="$(pwd)/build"
 IPHONEOS_BUILD_FOLDER="${BUILD_FOLDER}/$CONFIGURATION-$IPHONEOS_SDKPREFIX"
 IPHONE_SIMULATOR_BUILD_FOLDER="${BUILD_FOLDER}/$CONFIGURATION-$IPHONE_SIMULATOR_SDKPREFIX"
-BUILD_LOGFILE_NAME="build.log"
 
 
 # Building both architectures.
->"$BUILD_LOGFILE_NAME"
-if test $? -ne 0; then
-  echo "Aborting, cannot write to build log file $BUILD_LOGFILE_NAME"
-  exit 1
-fi
-xcodebuild -configuration "$CONFIGURATION" -target "${FRAMEWORK_NAME}" -sdk "$IPHONEOS_SDKPREFIX" 2>&1 | tee -a "$BUILD_LOGFILE_NAME"
-xcodebuild -configuration "$CONFIGURATION" -target "${FRAMEWORK_NAME}" -sdk "$IPHONE_SIMULATOR_SDKPREFIX" 2>&1 | tee -a "$BUILD_LOGFILE_NAME"
+xcodebuild -configuration "$CONFIGURATION" -target "${FRAMEWORK_NAME}" -sdk "$IPHONEOS_SDKPREFIX"
+xcodebuild -configuration "$CONFIGURATION" -target "${FRAMEWORK_NAME}" -sdk "$IPHONE_SIMULATOR_SDKPREFIX"
 
 # Cleaning the oldest.
 if test -d "${FRAMEWORK_FOLDER}"; then
