@@ -23,11 +23,19 @@ That's it, now all you need to do is integrate the Boost and Fuego frameworks in
 
 ## Branches
 
-The Fuego on iOS project has 3 permanent branches. Each of these branches is dedicated to exactly one task required to achieve the project goals.
+##### Overview
+
+The Fuego on iOS project has 3 permanent task branches:
+
+* master
+* fuego-on-ios
+* fuego-for-littlego
+
+The next sections explain the purpose of each of these task branches. There are also a number of branches that correspond to upstream Subversion branches. These branches are of no particular interest to the Fuego on iOS project and exist simply to mirror the upstream repository structure.
 
 ##### master
 
-Fuego on iOS uses `git svn` to track the [upstream Subversion repository](http://svn.code.sf.net/p/fuego/code/). The purpose of the `master` branch is to track the upstream `trunk`. No commits are allowed in `master` except those made by `git svn` to synchronize with upstream. The reason for this hard rule is that `git svn` will rebase local commits on top of Subversion commits, which will lead to problems due to published history being changed.
+Fuego on iOS uses `svn2git` to mirror the [upstream Subversion repository](http://svn.code.sf.net/p/fuego/code/). The purpose of the `master` branch is to track the upstream `trunk`. No commits are allowed in `master` except those made by `svn2git` to synchronize with upstream. The reason for this hard rule is that `svn2git` will rebase local commits on top of Subversion commits, which will lead to problems due to published history being changed.
 
 Currently, upstream changes are manually synchronized from time to time. A future goal is to automate this process (see issue #1 on GitHub).
 
@@ -50,7 +58,7 @@ These changes are separated into their own branch because the intent for the `fu
 
 ## Which branch should I use?
 
-You should use `master` if you are a Git user who wants to work with the unmodified Fuego source code, but cannot be bothered to fiddle with Subversion or `git svn`. The `master` branch simply takes care of "wrapping" the upstream Subversion repository in a Git repository. Currently the disadvantage is that the `master` branch may not be up-to-date because it must be manually synchronized.
+You should use `master` if you are a Git user who wants to work with the unmodified Fuego source code, but cannot be bothered to fiddle with Subversion or `svn2git`. The `master` branch simply takes care of "wrapping" the upstream Subversion repository in a Git repository. Currently the disadvantage is that the `master` branch may not be up-to-date because it must be manually synchronized.
 
 You should use `fuego-on-ios` if you want a ready-to-build Fuego + Boost environment. The build products are two framework bundles (Fuego + Boost) that you can simply add to your iOS application project.
 
@@ -100,9 +108,9 @@ These are some notes on how to maintain the Fuego on iOS repository and its bran
 
 Checkout `master`, then run this command:
 
-    git svn rebase
-    
-If this gives you an error message, you should probably read the section "Reconnecting a cloned Git repository with upstream Subversion repository" further down.
+    svn2git --rebase
+
+If you don't have `svn2git` in your environment, read the section "Getting svn2git". If you *do* have svn2git, but running the command gives you an error message, you should probably read the section "Reconnecting a cloned Git repository with upstream Subversion repository" further down.
 
 ##### Integrating changes from master into fuego-on-ios
 
@@ -136,13 +144,24 @@ All changes in the `fuego-for-littlego` branch remain local to that branch.
 
 Updates to this README file are made on the `fuego-on-ios` branch and then merged into `fuego-for-littlego`. The README file does not exist in `master`.
 
+## Troubleshooting
+
+##### Getting svn2git
+
+`svn2git` is a Ruby wrapper around `git svn`. Source code and installation instructions are available from [this GitHub repository](https://github.com/nirvdrum/svn2git). The Fuego on iOS project uses `svn2git` because it adds two bits of magic to `git svn`:
+
+* `svn2git` creates native Git branches and tags from Subversion branches and tags, whereas `git svn` just imports everything into the `master` branch and creates remote tracking branches for Subversion branches and tags.
+* `svn2git` points HEAD of `master` to the commit that represents the latest Subversion revision in the Subversion repo's trunk, whereas `git svn` points HEAD of `master` to the most recent Subversion revision, in whatever branch that may be (not necessarily trunk).
+
+As of this writing, the latest released version of `svn2git` is 2.2.2. This version has a problem interacting with Git releases 1.8.3.2 and later. If you have this configuration, you can either downgrade Git on your system to 1.8.3.1, or you can get an unreleased version of svn2git where [this fix](https://github.com/nirvdrum/svn2git/issues/132) has been integrated.
+  
 ##### Reconnecting a cloned Git repository with upstream Subversion repository
 
-When you clone the Fuego on iOS repository from GitHub, you will not be able to use `git svn` to synchronize the local repository with upstream Fuego. The reason is that certain configuration information required by `git svn` is kept only locally and is not versioned in Git, i.e. this information cannot be shared via GitHub. Therefore, anyone who wants to use `git svn` locally must first reconnect their local clone of `fuego-on-ios` to the upstream Subversion repository.
+When you clone the Fuego on iOS repository from GitHub, you will not be able to use `svn2git` to synchronize the local repository with upstream Fuego. The reason is that certain configuration information required by `svn2git` (actually `git svn`) is kept only locally and is not versioned in Git, i.e. this information cannot be shared via GitHub. Therefore, anyone who wants to use `svn2git` must first reconnect their local clone of `fuego-on-ios` to the upstream Subversion repository.
 
-The indicator that you are affected by this is when you issue a `git svn` command and you get the error message "Unable to determine upstream SVN information from working tree history".
+The indicator that you are affected by this is when you issue a `svn2git` command and you get the error message "command failed: 2>&1 git svn fetch".
 
-The first step to fix the problem is to add some configuration information to the `.git/config` file of your local repository:
+To fix the problem, add some configuration information to the `.git/config` file of your local repository:
 
     cd /path/to/fuego-on-ios
     git config svn-remote.svn.url http://svn.code.sf.net/p/fuego/code
@@ -150,28 +169,11 @@ The first step to fix the problem is to add some configuration information to th
     git config svn-remote.svn.branches branches/*:refs/remotes/*
     git config svn-remote.svn.tags tags/*:refs/remotes/tags/*
 
-Now checkout `master` if you have not yet done so. Look at the output of `git log`, and note down the SHA hash of the most recent commit that represents a Subversion commit (the commit message of such a commit has a line in it that starts with "git-svn-id"). 
+Now checkout `master` if you have not yet done so, then run
 
-Run the following command with the SHA hash you previously noted down:
+    svn2git --rebase
 
-    echo <hash> >.git/refs/remotes/trunk
-
-The final step is to restore the contents of the `.git/svn` folder. This is done automatically by this command:
-
-    git svn info
-
-(other commands such as `git svn fetch` may also work). From now on, `git svn rebase` should work as expected.
-
-##### How the Fuego on iOS repository was initialized
-
-This purely historical information documents how the `fuego-on-ios` repository was initialized.
-
-    mkdir fuego-on-ios
-    cd fuego-on-ios
-    git svn init --stdlayout http://svn.code.sf.net/p/fuego/code/ .
-    git svn fetch
-
-Besides the master branch that tracks the upstream trunk, these commands also create a number of remote tracking branches, one for each tag and branch in the upstream repo. They can be listed with `git branch -a`. These remotes are visible only locally and are not available to people who clone the public repository from GitHub.
+This takes quite a long time because it fetches all revisions from upstream Subversion. Behind the scenes the contents of the `.git/svn` folder are restored. From now on, `svn2git --rebase` should work as expected.
 
 ## Recipes
 
@@ -187,6 +189,14 @@ Assuming you have Boost installed somewhere locally (e.g. through Fink, MacPorts
     ./macosx/bin/fuego
 
 Such a build may be useful to test patches on the command line.
+
+##### How the Fuego on iOS repository was initialized
+
+This purely historical information documents how the `fuego-on-ios` repository was initialized.
+
+    mkdir fuego-on-ios
+    cd fuego-on-ios
+    svn2git http://svn.code.sf.net/p/fuego/code/
 
 ## Attributions
 
