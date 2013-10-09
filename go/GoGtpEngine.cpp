@@ -129,6 +129,8 @@ GoGtpEngine::GoGtpEngine(int fixedBoardSize, const char* programPath,
     Register("kgs-genmove_cleanup", &GoGtpEngine::CmdGenMoveCleanup, this);
     Register("kgs-time_settings", &GoGtpEngine::CmdKgsTimeSettings, this);
     Register("komi", &GoGtpEngine::CmdKomi, this);
+    Register("list_handicap", &GoGtpEngine::CmdListHandicap, this);
+    Register("list_moves", &GoGtpEngine::CmdListMoves, this);
     Register("list_stones", &GoGtpEngine::CmdListStones, this);
     Register("loadsgf", &GoGtpEngine::CmdLoadSgf, this);
     Register("play", &GoGtpEngine::CmdPlay, this);
@@ -631,6 +633,66 @@ void GoGtpEngine::CmdKomi(GtpCommand& cmd)
     {
         throw GtpFailure(e.what());
     }
+}
+
+/** List handicap stones in no particular order.
+    The stones are listed in a single line using the format "stone stone ...".
+    For instance: D4, Q4, Q16, D16 */
+void GoGtpEngine::CmdListHandicap(GtpCommand& cmd)
+{
+  cmd.CheckArgNone();
+  const SgNode* handicapNode = GoNodeUtil::GetHandicapNode(m_game.CurrentNode());
+  if (! handicapNode)
+    return;
+  const SgPropID addBlackPropID = SG_PROP_ADD_BLACK;
+  if (handicapNode->HasProp(addBlackPropID))
+  {
+    SgPropAddStone* propAddStone = static_cast<SgPropAddStone*>(handicapNode->Get(addBlackPropID));
+    const SgVector<SgPoint>& handicapStoneList = propAddStone->Value();
+    bool isFirst = true;
+    for (SgVectorIterator<SgPoint> it(handicapStoneList); it; ++it)
+    {
+      SgPoint point = *it;
+      if (isFirst)
+        isFirst = false;
+      else
+        cmd << " ";
+      cmd << SgPointUtil::PointToString(point);
+    }
+  }
+}
+
+/** List moves in the order they were made.
+    The moves are returned in a single line using the format
+    "color move, color move, ...". For instance: B A7, W Q14, B pass, W pass */
+void GoGtpEngine::CmdListMoves(GtpCommand& cmd)
+{
+  cmd.CheckArgNone();
+ 
+  const SgNode& root = m_game.Root();
+  bool isFirst = true;
+  // Traverse the main line (assume that all move nodes are on this line)
+  SgNode* node = root.LeftMostSon();
+  while (node)
+  {
+    if (node->HasNodeMove())
+    {
+      if (isFirst)
+        isFirst = false;
+      else
+        cmd << ", ";
+      SgBlackWhite player = node->NodePlayer();
+      cmd << SgBW(player) << " ";
+      SgPoint point = node->NodeMove();
+      if (SG_PASS == point)
+        cmd << "pass";
+      else if (SG_RESIGN == point)
+        cmd << "resign";  // is this type of point ever matched?
+      else
+        cmd << SgPointUtil::PointToString(point);
+    }
+    node = node->LeftMostSon();
+  }
 }
 
 /** List stones on board.

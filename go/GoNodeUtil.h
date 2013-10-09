@@ -34,6 +34,9 @@ namespace GoNodeUtil
     /** Find handicap that is valid for this node.
         Search parent nodes until a node with a handicap property is found. */
     int GetHandicap(const SgNode* node);
+  
+    /** Search parent nodes until a node with a handicap property is found. */
+    const SgNode* GetHandicapNode(const SgNode* node);
 }
 
 //----------------------------------------------------------------------------

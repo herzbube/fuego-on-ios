@@ -46,13 +46,22 @@ GoKomi GoNodeUtil::GetKomi(const SgNode* node)
 
 int GoNodeUtil::GetHandicap(const SgNode* node)
 {
-    while (node != 0)
-    {
-        if (node->HasProp(SG_PROP_HANDICAP))
-            return node->GetIntProp(SG_PROP_HANDICAP);
-        node = node->Father();
-    }
+  node = GetHandicapNode(node);
+  if (node)
+    return node->GetIntProp(SG_PROP_HANDICAP);
+  else
     return 0;
+}
+
+const SgNode* GoNodeUtil::GetHandicapNode(const SgNode* node)
+{
+  while (node != 0)
+  {
+    if (node->HasProp(SG_PROP_HANDICAP))
+      return node;
+    node = node->Father();
+  }
+  return 0;
 }
 
 //----------------------------------------------------------------------------
