@@ -92,9 +92,9 @@ These are the build results that can be integrated into other Xcode projects:
     boost/ios/framework/boost.framework
     ios/framework/fuego-on-ios.framework
 
-Current build settings:
+Most important build settings:
 
-* iOS SDK 6.1
+* iOS SDK = The latest SDK known to your Xcode
 * Deployment target 5.0
 * C++ Language Dialect = GNU++98 (`-std=gnu++98`)
 * C++ Standard Library = libstdc++ (`-stdlib=libstdc++`)
@@ -197,6 +197,38 @@ This purely historical information documents how the `fuego-on-ios` repository w
     mkdir fuego-on-ios
     cd fuego-on-ios
     svn2git http://svn.code.sf.net/p/fuego/code/
+
+##### How the Xcode project was created
+
+Project creation:
+
+* Create new Xcode project with Xcode 4.6
+* Template = Cocoa Touch Static Library
+* Name = fuego-on-ios
+
+File changes:
+
+* Remove all files that were automatically added to the project by the Xcode template
+* Add the following subfolders with their content to the project: fuegomain, go, gouct, gtpengine, simpleplayers, smartgame. Select the option "Create groups for any added folders". With this option is possible to later remove individual files.
+* Remove all "test" subfolders (e.g. go/test) and all "Makefile.am" files (e.g. go/Makefile.am) from the project
+* Remove FuegoMain.cpp from the target "fuego-on-ios" (contains the main() function)
+* Remove SgProcess.cpp and SgProcess.h from the target "fuego-on-ios" (fixes a compiler error in SgProcess.h, where a GCC specific header is included)
+* Add all .cpp and .h files to the target "fuego-on-ios"
+
+Project settings changes:
+
+* Target "fuego-on-ios" > Build Phases > Add Build Phase "Copy Headers", then drag all .h files from the project tree into the "Public" section of the build phase
+* Target "fuego-on-ios" > Build Phases > In build phase "Copy Headers" drag all .h files from the "Project" section to the "Public" section
+* Target "fuego-on-ios" > Build Phases > Link Binary With Libraries > Select the Boost framework previously built (path = `boost/ios/framework/boost.framework`)
+* Target "fuego-on-ios" > Build Settings > Precompile Prefix Header = No
+* Target "fuego-on-ios" > Build Settings > Prefix Header = Clear
+* Project > iOS Deployment Target = iOS 5.0
+* Project > Public Headers Folder Path = Headers
+* Project > C++ Language Dialect = GNU++98 (-std=gnu++98)
+* Project > C++ Standard Library = libstdc++ (-stdlib=libstdc++)
+* Project > Inline Methods Hidden = Yes (-fvisibility-inlines-hidden)
+* Project > Symbols hidden by Default = Yes (-fvisibility=hidden)
+* Project > Preprocessor Macros = NDEBUG (fixes a runtime error in case Fuego is run with the command line option `--quiet`)
 
 ## Attributions
 
