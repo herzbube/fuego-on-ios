@@ -12,6 +12,7 @@
 #include "GoBoardRestorer.h"
 #include "GoPlayer.h"
 #include "GoTimeControl.h"
+#include "GoUctAdditiveKnowledgeGreenpeep.h"
 #include "GoUctDefaultMoveFilter.h"
 #include "GoUctGlobalSearch.h"
 #include "GoUctObjectWithSearch.h"
@@ -572,6 +573,7 @@ GoUctPlayer<SEARCH, THREAD>::GoUctPlayer(const GoBoard& bd)
     SetDefaultParameters(Board().Size());
     m_search.SetMpiSynchronizer(m_mpiSynchronizer);
     m_treeFilterParam.SetCheckSafety(false);
+    GoUctAdditiveKnowledgeParamGreenpeep::OnBoardSizeChange(Board());
 }
 
 template <class SEARCH, class THREAD>
@@ -1028,6 +1030,10 @@ template <class SEARCH, class THREAD>
 void GoUctPlayer<SEARCH, THREAD>::OnBoardChange()
 {
     int size = Board().Size();
+    if (size != m_lastBoardSize)
+    {
+        GoUctAdditiveKnowledgeParamGreenpeep::OnBoardSizeChange(Board());
+    }
     if (m_autoParam && size != m_lastBoardSize)
     {
         SgDebug() << "GoUctPlayer: Setting default parameters for size "

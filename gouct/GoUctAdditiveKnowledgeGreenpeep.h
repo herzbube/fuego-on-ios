@@ -17,25 +17,54 @@ const int NUMPATTERNS9X9 = 1<<26;
 /* 24-bit: 16-bit 8-neighbor core, 8-bit liberty & 2-away extension */
 const int NUMPATTERNS19X19 = 1<<24;
 
+/** Types of Greenpeep knowledge patterns */
+enum GoUctGreenpeepPatternType
+{
+    /** 9x9 patterns. These are used for board sizes < 15 */
+    GOUCT_GREENPEEPPATTERNTYPE_9x9,
+    /** 19x19 patterns. These are used for board sizes >= 15 */
+    GOUCT_GREENPEEPPATTERNTYPE_19x19
+};
+
 //----------------------------------------------------------------------------
 
 class GoUctAdditiveKnowledgeParamGreenpeep: public GoUctAdditiveKnowledgeParam
 {
 private:
 public:
-    GoUctAdditiveKnowledgeParamGreenpeep();
+    GoUctAdditiveKnowledgeParamGreenpeep(GoUctGreenpeepPatternType patternType);
+    ~GoUctAdditiveKnowledgeParamGreenpeep();
 
-    unsigned short m_predictor9x9[NUMPATTERNS9X9];
-    
-    unsigned short m_predictor19x19[NUMPATTERNS19X19];
+    int m_predictorArraySize;
+    unsigned short* m_predictor;
+
+    // These functions modify the static variables below, but they do not use
+    // locking. These functions may therefore be called only when search
+    // threads are not running, i.e. at a time when it is guaranteed that
+    // GetParamObject() is NOT called.
+    static void IncrementReferenceCount();
+    static void DecrementReferenceCount();
+    static void OnBoardSizeChange(const GoBoard& bd);
+    // This function is called while search threads are running. It accesses
+    // the static parameter object variables below, but it uses no locking.
+    static const GoUctAdditiveKnowledgeParamGreenpeep* GetParamObject(GoUctGreenpeepPatternType patternType);
+
+private:
+    static int referenceCount;
+    static SgGrid boardSize;
+    static GoUctAdditiveKnowledgeParamGreenpeep* paramObject9x9;
+    static GoUctAdditiveKnowledgeParamGreenpeep* paramObject19x19;
+
+    static void UpdateParamObjects();
+    static bool ShouldExistParamObject(GoUctGreenpeepPatternType patternType);
 };
 
 /** Use Greenpeep-style pattern values to make predictions. */
 class GoUctAdditiveKnowledgeGreenpeep : public GoUctAdditiveKnowledge
 {
 public:
-    GoUctAdditiveKnowledgeGreenpeep(const GoBoard& bd,
-				 const GoUctAdditiveKnowledgeParamGreenpeep& param);
+    GoUctAdditiveKnowledgeGreenpeep(const GoBoard& bd);
+    ~GoUctAdditiveKnowledgeGreenpeep();
 
     /** The minimum value allowed by this predictor */
     SgUctValue Minimum() const;
@@ -81,8 +110,6 @@ public:
     SgUctValue Scale() const;
 
 private:
-    const GoUctAdditiveKnowledgeParamGreenpeep& m_param;
-
     unsigned int m_contexts[SG_MAX_ONBOARD + 1];
 };
 

@@ -198,54 +198,155 @@ void ReadPatternArray(unsigned short predictor[], int size,
     }
 }
 
-void ReadPatterns(unsigned short predictor9[],
-                  unsigned short predictor19[])
-{
-    ReadPatternArray(predictor9, NUMPATTERNS9X9,
-                     greenpeepPatterns9, nuGreenpeepPatterns9);
-    ReadPatternArray(predictor19, NUMPATTERNS19X19,
-                     greenpeepPatterns19, nuGreenpeepPatterns19);
-}
-
 } // namespace
 
 //----------------------------------------------------------------------------
 
-GoUctAdditiveKnowledgeParamGreenpeep::GoUctAdditiveKnowledgeParamGreenpeep()
+GoUctAdditiveKnowledgeParamGreenpeep::GoUctAdditiveKnowledgeParamGreenpeep(GoUctGreenpeepPatternType patternType)
+: m_predictorArraySize(0)
+, m_predictor(0)
 {
-    ReadPatterns(m_predictor9x9, m_predictor19x19);
+    unsigned int nuPatterns;
+    PatternEntry* patterns;
+    if (GOUCT_GREENPEEPPATTERNTYPE_9x9 == patternType)
+    {
+        nuPatterns = nuGreenpeepPatterns9;
+        patterns = greenpeepPatterns9;
+        m_predictorArraySize = NUMPATTERNS9X9;
+    }
+    else
+    {
+        nuPatterns = nuGreenpeepPatterns19;
+        patterns = greenpeepPatterns19;
+        m_predictorArraySize = NUMPATTERNS19X19;
+    }
+    m_predictor = new unsigned short[m_predictorArraySize];
+    ReadPatternArray(m_predictor, m_predictorArraySize,
+                     patterns, nuPatterns);
+}
+
+GoUctAdditiveKnowledgeParamGreenpeep::~GoUctAdditiveKnowledgeParamGreenpeep()
+{
+    delete[] m_predictor;
+}
+
+int GoUctAdditiveKnowledgeParamGreenpeep::referenceCount = 0;
+SgGrid GoUctAdditiveKnowledgeParamGreenpeep::boardSize = 0;
+GoUctAdditiveKnowledgeParamGreenpeep* GoUctAdditiveKnowledgeParamGreenpeep::paramObject9x9 = 0;
+GoUctAdditiveKnowledgeParamGreenpeep* GoUctAdditiveKnowledgeParamGreenpeep::paramObject19x19 = 0;
+
+void GoUctAdditiveKnowledgeParamGreenpeep::IncrementReferenceCount()
+{
+    ++referenceCount;
+    UpdateParamObjects();
+}
+
+void GoUctAdditiveKnowledgeParamGreenpeep::DecrementReferenceCount()
+{
+    --referenceCount;
+    if (referenceCount < 0)
+    {
+        SG_ASSERT(false);
+        referenceCount = 0;
+    }
+    UpdateParamObjects();
+}
+
+void GoUctAdditiveKnowledgeParamGreenpeep::OnBoardSizeChange(const GoBoard& bd)
+{
+    boardSize = bd.Size();
+    UpdateParamObjects();
+}
+
+void GoUctAdditiveKnowledgeParamGreenpeep::UpdateParamObjects()
+{
+    GoUctGreenpeepPatternType patternType = GOUCT_GREENPEEPPATTERNTYPE_9x9;
+    if (ShouldExistParamObject(patternType))
+    {
+        if (! paramObject9x9)
+            paramObject9x9 = new GoUctAdditiveKnowledgeParamGreenpeep(patternType);
+    }
+    else
+    {
+        if (paramObject9x9)
+        {
+            delete paramObject9x9;
+            paramObject9x9 = 0;
+        }
+    }
+
+    patternType = GOUCT_GREENPEEPPATTERNTYPE_19x19;
+    if (ShouldExistParamObject(patternType))
+    {
+        if (! paramObject19x19)
+            paramObject19x19 = new GoUctAdditiveKnowledgeParamGreenpeep(patternType);
+    }
+    else
+    {
+        if (paramObject19x19)
+        {
+            delete paramObject19x19;
+            paramObject19x19 = 0;
+        }
+    }
+}
+
+bool GoUctAdditiveKnowledgeParamGreenpeep::ShouldExistParamObject(GoUctGreenpeepPatternType patternType)
+{
+    bool shouldExist;
+    if (0 == referenceCount)
+        shouldExist = false;
+    else if (GOUCT_GREENPEEPPATTERNTYPE_9x9 == patternType)
+        shouldExist = (boardSize < 15);
+    else
+        shouldExist = (boardSize >= 15);
+    return shouldExist;
+}
+
+const GoUctAdditiveKnowledgeParamGreenpeep*
+GoUctAdditiveKnowledgeParamGreenpeep::GetParamObject(GoUctGreenpeepPatternType patternType)
+{
+    if (GOUCT_GREENPEEPPATTERNTYPE_9x9 == patternType)
+        return paramObject9x9;
+    else
+        return paramObject19x19;
 }
 
 //----------------------------------------------------------------------------
 
 GoUctAdditiveKnowledgeGreenpeep::GoUctAdditiveKnowledgeGreenpeep(
-                        const GoBoard& bd,
-                        const GoUctAdditiveKnowledgeParamGreenpeep& param)
-  : GoUctAdditiveKnowledge(bd),
-    m_param(param)
+                        const GoBoard& bd)
+  : GoUctAdditiveKnowledge(bd)
 {
     // Knowledge applies to all moves
     SetMoveRange(0, 10000); 
+    GoUctAdditiveKnowledgeParamGreenpeep::IncrementReferenceCount();
 }
 
+GoUctAdditiveKnowledgeGreenpeep::~GoUctAdditiveKnowledgeGreenpeep()
+{
+    GoUctAdditiveKnowledgeParamGreenpeep::DecrementReferenceCount();
+}
 
 void 
 GoUctAdditiveKnowledgeGreenpeep::ProcessPosition(
 									std::vector<SgUctMoveInfo>& moves)
 {
     bool use9x9flag;
-    const unsigned short *pred;
-
+    GoUctGreenpeepPatternType patternType;
     if (Board().Size() < 15)
     {
         use9x9flag = true;
-        pred = m_param.m_predictor9x9;
+        patternType = GOUCT_GREENPEEPPATTERNTYPE_9x9;
     }
     else
     {
         use9x9flag = false;
-        pred = m_param.m_predictor19x19;
+        patternType = GOUCT_GREENPEEPPATTERNTYPE_19x19;
     }
+    const GoUctAdditiveKnowledgeParamGreenpeep* param = 
+        GoUctAdditiveKnowledgeParamGreenpeep::GetParamObject(patternType);
+    const unsigned short *pred = param->m_predictor;
 
     ComputeContexts(Board(), moves.begin(), moves.end(), m_contexts);
     for (std::size_t i = 0; i < moves.size(); ++i) 

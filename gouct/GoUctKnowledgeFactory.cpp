@@ -14,21 +14,11 @@
 //----------------------------------------------------------------------------
 GoUctKnowledgeFactory::GoUctKnowledgeFactory(
     const GoUctPlayoutPolicyParam& param) :
-    m_greenpeepParam(0),
     m_param(param)
 { }
 
 GoUctKnowledgeFactory::~GoUctKnowledgeFactory()
 {
-	if (m_greenpeepParam)
-    	delete m_greenpeepParam;
-}
-
-GoUctAdditiveKnowledgeParamGreenpeep& GoUctKnowledgeFactory::GreenpeepParam()
-{
-	if (! m_greenpeepParam)
-    	m_greenpeepParam = new GoUctAdditiveKnowledgeParamGreenpeep();
-    return *m_greenpeepParam;
 }
 
 GoUctAdditiveKnowledge* GoUctKnowledgeFactory::Create(const GoBoard& bd)
@@ -38,8 +28,7 @@ GoUctAdditiveKnowledge* GoUctKnowledgeFactory::Create(const GoBoard& bd)
     switch(type)
     {
     case KNOWLEDGE_GREENPEEP:
-    	return new GoUctAdditiveKnowledgeGreenpeep(bd,
-                        GreenpeepParam());
+    	return new GoUctAdditiveKnowledgeGreenpeep(bd);
     break;
     case KNOWLEDGE_RULEBASED:
     	return new GoUctAdditiveKnowledgeFuego(bd);
