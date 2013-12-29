@@ -13,11 +13,11 @@ Fuego on iOS currently combines
 
 ## Quickstart Guide
 
-The project is set up with the `fuego-on-ios` branch as the default branch. This should allow you to get going immediately.
+The project is set up with the `fuego-on-ios` branch as the default branch. This should allow you to get going immediately:
 
 1. Clone the repository
-1. Initialize the "boost-trunk" submodule. Find the necessary commands further down in the section "The boost-trunk submodule".
-1. Build Boost, then build Fuego. Find the necessary commands further down in the section "How to build".
+1. Initialize the "boost-trunk" submodule. Find the necessary commands further down in the section "[The boost-trunk submodule](#the-boost-trunk-submodule)".
+1. Build Boost, then build Fuego. Find the necessary commands further down in the section "[How to build](#how-to-build)".
 
 That's it, now all you need to do is integrate the Boost and Fuego frameworks into your project.
 
@@ -35,7 +35,7 @@ The next sections explain the purpose of each of these task branches. There are 
 
 ##### master
 
-Fuego on iOS uses `svn2git` to mirror the [upstream Subversion repository](http://svn.code.sf.net/p/fuego/code/). The purpose of the `master` branch is to track the upstream `trunk`. No commits are allowed in `master` except those made by `svn2git` to synchronize with upstream. The reason for this hard rule is that `svn2git` will rebase local commits on top of Subversion commits, which will lead to problems due to published history being changed.
+Fuego on iOS uses `svn2git` to mirror the [upstream Subversion repository](http://svn.code.sf.net/p/fuego/code/). The purpose of the `master` branch is to track the upstream `trunk`. No commits are allowed in `master` except those made by `svn2git` to synchronize with upstream. The reason for this hard rule is that `svn2git` will rebase local commits on top of Subversion commits, which would lead to problems due to published history being changed.
 
 Currently, upstream changes are manually synchronized from time to time. A future goal is to automate this process (see issue #1 on GitHub).
 
@@ -58,7 +58,7 @@ These changes are separated into their own branch because the intent for the `fu
 
 ## Which branch should I use?
 
-You should use `master` if you are a Git user who wants to work with the unmodified Fuego source code, but cannot be bothered to fiddle with Subversion or `svn2git`. The `master` branch simply takes care of "wrapping" the upstream Subversion repository in a Git repository. Currently the disadvantage is that the `master` branch may not be up-to-date because it must be manually synchronized.
+You should use `master` if you are a Git user who wants to work with the unmodified Fuego source code, but cannot be bothered to fiddle with Subversion or `svn2git`. The `master` branch simply takes care of "wrapping" the upstream Subversion repository in a Git repository. Currently the disadvantage is that the `master` branch may not be up-to-date because it is manually synchronized.
 
 You should use `fuego-on-ios` if you want a ready-to-build Fuego + Boost environment. The build products are two framework bundles (Fuego + Boost) that you can simply add to your iOS application project.
 
@@ -108,13 +108,33 @@ These are some notes on how to maintain the Fuego on iOS repository and its bran
 
 Checkout `master`, then run this command:
 
-    svn2git --rebase
+    svn2git --metadata --rebase
 
-If you don't have `svn2git` in your environment, read the section "Getting svn2git". If you *do* have svn2git, but running the command gives you an error message, you should probably read the section "Reconnecting a cloned Git repository with upstream Subversion repository" further down.
+If you don't have `svn2git` in your environment, read the section "[Getting svn2git](#getting-svn2git)". If you *do* have svn2git, but running the command gives you an error message, you should probably read the section "[Reconnecting a cloned Git repository with upstream Subversion repository](#reconnecting-a-cloned-git-repository-with-upstream-subversion-repository)" further down.
+
+In an ideal world, the `--rebase` command line option would update the local Git repository so that it is an exact mirror of the upstream Subversion repository. Unfortunately, in the `svn2git` version that is current at the time of writing (v2.2.2) the mirroring capability of `--rebase` is severely limited. In fact, the command line option does not do much else besides fetching upstream commits into the local Git repository. The following tasks need to be done manually:
+
+1. Add local tags for tags that were created upstream since the last sync
+    1. List all remote branches: `git branch -r`
+    1. List all tags: `git tag`
+    1. Pick out remote SVN branches whose name starts with `svn/tags` for which there is no corresponding tag
+    1. For every branch thus found, get a log message: `git show svn/tags/[TAG-NAME]`
+    1. Create the corresponding tag: `git tag -a -m "[LOG MESSAGE]" [TAG-NAME] svn/tags/[TAG-NAME]`
+    1. Remove the remote branch: `git branch -rd svn/tags/[TAG-NAME]`
+1. Add local branches for branches that were created upstream since the last sync
+    1. List all branches: `git branch -a`
+    1. Pick out remote SVN branches for which there is no corresponding local branch
+    1. For every branch thus found, create a local branch: `git branch [BRANCH-NAME] remotes/svn/[BRANCH-NAME]`
+1. Advance the HEAD of all existing branches that received commits upstream since the last sync. Usually, this affects the `master` branch.
+   1. This affects all local branches where HEAD does not point to the same commit as HEAD of the corresponding remote branch
+   1. Check out each affected branch, then advance its HEAD: `git reset --hard [COMMIT-REF]`
+
+Once the local Git repository is in shape, the changes can be pushed to GitHub.
+
 
 ##### Integrating changes from master into fuego-on-ios
 
-All commits in `master` up to the desired commit must be merged into the `fuego-on-ios` branch. There is no cherry-picking to keep things simple.
+All commits in `master` up to the desired commit must be merged into the `fuego-on-ios` branch. To keep things simple no cherry-picking is allowed.
 
 After the merge, the Xcode project may also need to be updated (add new files, remove old files, update build settings).
 
@@ -196,7 +216,7 @@ This purely historical information documents how the `fuego-on-ios` repository w
 
     mkdir fuego-on-ios
     cd fuego-on-ios
-    svn2git http://svn.code.sf.net/p/fuego/code/
+    svn2git --metadata http://svn.code.sf.net/p/fuego/code/
 
 ##### How the Xcode project was created
 
@@ -209,7 +229,7 @@ Project creation:
 File changes:
 
 * Remove all files that were automatically added to the project by the Xcode template
-* Add the following subfolders with their content to the project: fuegomain, go, gouct, gtpengine, simpleplayers, smartgame. Select the option "Create groups for any added folders". With this option is possible to later remove individual files.
+* Add the following subfolders with their content to the project: fuegomain, go, gouct, gtpengine, simpleplayers, smartgame. Select the option "Create groups for any added folders". With this option it is possible to later remove individual files.
 * Remove all "test" subfolders (e.g. go/test) and all "Makefile.am" files (e.g. go/Makefile.am) from the project
 * Remove FuegoMain.cpp from the target "fuego-on-ios" (contains the main() function)
 * Remove SgProcess.cpp and SgProcess.h from the target "fuego-on-ios" (fixes a compiler error in SgProcess.h, where a GCC specific header is included)
