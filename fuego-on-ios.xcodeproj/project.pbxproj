@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CDA067F01870A0B3000805B5 /* SgProcess.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDEFA41C17FA173400A99F64 /* SgProcess.cpp */; };
+		CDA067F11870A0BC000805B5 /* SgProcess.h in Headers */ = {isa = PBXBuildFile; fileRef = CDEFA41D17FA173400A99F64 /* SgProcess.h */; };
 		CDEFA2F217FA151100A99F64 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDEFA2F117FA151100A99F64 /* Foundation.framework */; };
 		CDEFA30017FA15C200A99F64 /* boost.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDEFA2FF17FA15C200A99F64 /* boost.framework */; };
 		CDEFA47F17FA173400A99F64 /* FuegoMainEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDEFA30917FA173300A99F64 /* FuegoMainEngine.cpp */; };
@@ -1139,6 +1141,7 @@
 				CDEFA5D117FA291500A99F64 /* SgSortedMoves.h in Headers */,
 				CDEFA5D217FA291500A99F64 /* SgStack.h in Headers */,
 				CDEFA5D317FA291500A99F64 /* SgStatistics.h in Headers */,
+				CDA067F11870A0BC000805B5 /* SgProcess.h in Headers */,
 				CDEFA5D417FA291500A99F64 /* SgStatisticsVlt.h in Headers */,
 				CDEFA5D517FA291500A99F64 /* SgStrategy.h in Headers */,
 				CDEFA5D617FA291500A99F64 /* SgStringUtil.h in Headers */,
@@ -1260,6 +1263,7 @@
 				CDEFA4BE17FA173400A99F64 /* GoUctCommands.cpp in Sources */,
 				CDEFA4BF17FA173400A99F64 /* GoUctDefaultMoveFilter.cpp in Sources */,
 				CDEFA4C017FA173400A99F64 /* GoUctDefaultPriorKnowledge.cpp in Sources */,
+				CDA067F01870A0B3000805B5 /* SgProcess.cpp in Sources */,
 				CDEFA4C117FA173400A99F64 /* GoUctEstimatorStat.cpp in Sources */,
 				CDEFA4C217FA173400A99F64 /* GoUctGlobalSearch.cpp in Sources */,
 				CDEFA4C317FA173400A99F64 /* GoUctKnowledge.cpp in Sources */,
