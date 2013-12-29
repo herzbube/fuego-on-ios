@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		CDA067F01870A0B3000805B5 /* SgProcess.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDEFA41C17FA173400A99F64 /* SgProcess.cpp */; };
 		CDA067F11870A0BC000805B5 /* SgProcess.h in Headers */ = {isa = PBXBuildFile; fileRef = CDEFA41D17FA173400A99F64 /* SgProcess.h */; };
+		CDA067F41870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDA067F21870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.cpp */; };
+		CDA067F51870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.h in Headers */ = {isa = PBXBuildFile; fileRef = CDA067F31870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.h */; };
 		CDEFA2F217FA151100A99F64 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDEFA2F117FA151100A99F64 /* Foundation.framework */; };
 		CDEFA30017FA15C200A99F64 /* boost.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDEFA2FF17FA15C200A99F64 /* boost.framework */; };
 		CDEFA47F17FA173400A99F64 /* FuegoMainEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDEFA30917FA173300A99F64 /* FuegoMainEngine.cpp */; };
@@ -313,6 +315,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		CDA067F21870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GoUctAdditiveKnowledgeMultiple.cpp; sourceTree = "<group>"; };
+		CDA067F31870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GoUctAdditiveKnowledgeMultiple.h; sourceTree = "<group>"; };
 		CDEFA2EE17FA151100A99F64 /* libfuego-on-ios.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libfuego-on-ios.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDEFA2F117FA151100A99F64 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		CDEFA2FF17FA15C200A99F64 /* boost.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = boost.framework; path = boost/ios/framework/boost.framework; sourceTree = "<group>"; };
@@ -767,6 +771,8 @@
 				CDEFA37B17FA173300A99F64 /* GoUctAdditiveKnowledgeFuego.h */,
 				CDEFA37C17FA173300A99F64 /* GoUctAdditiveKnowledgeGreenpeep.cpp */,
 				CDEFA37D17FA173300A99F64 /* GoUctAdditiveKnowledgeGreenpeep.h */,
+				CDA067F21870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.cpp */,
+				CDA067F31870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.h */,
 				CDEFA37E17FA173300A99F64 /* GoUctBoard.cpp */,
 				CDEFA37F17FA173300A99F64 /* GoUctBoard.h */,
 				CDEFA38017FA173300A99F64 /* GoUctBookBuilder.h */,
@@ -1142,6 +1148,7 @@
 				CDEFA5D217FA291500A99F64 /* SgStack.h in Headers */,
 				CDEFA5D317FA291500A99F64 /* SgStatistics.h in Headers */,
 				CDA067F11870A0BC000805B5 /* SgProcess.h in Headers */,
+				CDA067F51870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.h in Headers */,
 				CDEFA5D417FA291500A99F64 /* SgStatisticsVlt.h in Headers */,
 				CDEFA5D517FA291500A99F64 /* SgStrategy.h in Headers */,
 				CDEFA5D617FA291500A99F64 /* SgStringUtil.h in Headers */,
@@ -1279,6 +1286,7 @@
 				CDEFA4D117FA173400A99F64 /* GtpOutputStream.cpp in Sources */,
 				CDEFA4D317FA173400A99F64 /* SpAveragePlayer.cpp in Sources */,
 				CDEFA4D417FA173400A99F64 /* SpCapturePlayer.cpp in Sources */,
+				CDA067F41870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.cpp in Sources */,
 				CDEFA4D517FA173400A99F64 /* SpDumbTacticalPlayer.cpp in Sources */,
 				CDEFA4D617FA173400A99F64 /* SpGreedyPlayer.cpp in Sources */,
 				CDEFA4D717FA173400A99F64 /* SpInfluencePlayer.cpp in Sources */,
