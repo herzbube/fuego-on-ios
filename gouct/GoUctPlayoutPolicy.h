@@ -15,12 +15,31 @@
 
 //----------------------------------------------------------------------------
 
-/** Knowledge Type is used for GoUctKnowledgeFactory*/
+// @todo this is a strange place for these enum types.
+// They are just here for convenience,
+// to avoid yet another different Param structure and UI dialog.
+
+/** Knowledge Type is used for GoUctKnowledgeFactory. */
 enum KnowledgeType
 {
+    KNOWLEDGE_NONE,
     KNOWLEDGE_GREENPEEP,
-    KNOWLEDGE_RULEBASED
+    KNOWLEDGE_RULEBASED,
+    KNOWLEDGE_BOTH
 };
+
+/** Combination Type is used for combining multiple additive knowledge. */
+enum GoUctKnowledgeCombinationType
+{
+    COMBINE_MULTIPLY,
+    COMBINE_GEOMETRIC_MEAN,
+    COMBINE_ADD,
+    COMBINE_AVERAGE,
+    COMBINE_MAX
+};
+
+//----------------------------------------------------------------------------
+
 
 /** Parameters for GoUctPlayoutPolicy. */
 class GoUctPlayoutPolicyParam
@@ -31,7 +50,8 @@ public:
     bool m_statisticsEnabled;
 
     /** Use Nakade heuristic.
-        See section 6.2 of: Chatriot, Gelly, Hoock, Perez, Rimmel, Teytaud:
+        See section 6.2 of: Chaslot, Chatriot, Fiter, Gelly, Hoock, 
+        Perez, Rimmel and Teytaud:
         <a href="http://www.lri.fr/~teytaud/eg.pdf">
         Combining expert, offline, transient and online learning in
         Monte-Carlo exploration</a> */
@@ -57,6 +77,9 @@ public:
 
     /** To select knowledge type in GoUctKnowledgeFactory */
     KnowledgeType m_knowledgeType;
+    
+    /** How to combine multiple additive knowledge */
+    GoUctKnowledgeCombinationType m_combinationType;
 
     GoUctPlayoutPolicyParam();
 };

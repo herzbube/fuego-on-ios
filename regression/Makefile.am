@@ -18,6 +18,7 @@ uct.list \
 9x9-blunder-endgame.tst \
 9x9-opening.tst \
 backfill.tst \
+bent_four.tst \
 blunder_long_ladder_19.tst \
 blunder_long_ladder_19b.tst \
 blunder_play_near_dead_19.tst \
@@ -37,6 +38,7 @@ ladder.list \
 ladder.suite \
 ladder.tst \
 life_and_death_nakade.tst \
+life_and_death_nakade_eval_0.5.tst \
 performance_barcelona2010.tst \
 performance_eval_pro_9x9.tst \
 performance_icgc2008.tst \
@@ -96,6 +98,9 @@ uct_selfatari.tst \
 uct_semeai.tst \
 uct_semeai_blunder.tst \
 sgf/approach_move/backfill.1.sgf \
+sgf/bent_four/bentfour1.sgf \
+sgf/bent_four/bentfour2.sgf \
+sgf/bent_four/bentfour1b.sgf \
 sgf/book_test/book.0.sgf \
 sgf/book_test/book.1.sgf \
 sgf/book_test/book.2.sgf \
@@ -262,6 +267,8 @@ sgf/games/2010/LittleGolem/1173624.sgf \
 sgf/games/2010/LittleGolem/1177582.sgf \
 sgf/games/2011/CGOS/Fuego-Amigo-loss-bug.sgf \
 sgf/games/2011/Fuego-1.1-vim-5-variation.sgf \
+sgf/games/2011/KGS/CzechBot-Zen19S-semeai.sgf \
+sgf/games/2011/KGS/CzechBot-Zen19S.sgf \
 sgf/games/2011/KGS/FuegoBot2-laska0-3.sgf \
 sgf/games/2011/KGS/FuegoBot2-laska0-tsumego.sgf \
 sgf/games/2011/KGS-January/PueGo-pachi2.sgf \
@@ -338,13 +345,22 @@ sgf/lifeanddeath/4x4nakade.sgf \
 sgf/lifeanddeath/eye-tricky.sgf \
 sgf/lifeanddeath/good-selfatari.1.sgf \
 sgf/lifeanddeath/good-selfatari.2.sgf \
+sgf/lifeanddeath/nakade-3pts-1.sgf \
 sgf/lifeanddeath/nakade-5plus-seki.sgf \
 sgf/lifeanddeath/nakade-5pts-1.sgf \
 sgf/lifeanddeath/nakade-5pts-2.sgf \
+sgf/lifeanddeath/nakade-5pts-3.sgf \
 sgf/lifeanddeath/nakade-6pts-1.sgf \
 sgf/lifeanddeath/nakade-6pts-2.sgf \
 sgf/lifeanddeath/nakade-6pts-3.sgf \
+sgf/lifeanddeath/nakade-6pts-corner-1.sgf \
+sgf/lifeanddeath/nakade-6pts-realgame.sgf \
+sgf/lifeanddeath/nakade-6pts-realgame.2.sgf \
 sgf/lifeanddeath/no-nakade-6pts-1.sgf \
+sgf/lifeanddeath/seki-nakade-3pts.sgf \
+sgf/lifeanddeath/seki-nakade-3pts.2.sgf \
+sgf/lifeanddeath/seki-nakade-5pts.sgf \
+sgf/lifeanddeath/seki-nakade-5pts.2.sgf \
 sgf/pass/tromp-taylor-pass.sgf \
 sgf/playout/playout_atari_defense_1.sgf \
 sgf/playout/playout_atari_defense_2.sgf \
