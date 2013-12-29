@@ -47,7 +47,7 @@ GoUctAdditiveKnowledge* GoUctKnowledgeFactory::Create(const GoBoard& bd)
                                            m_param.m_combinationType);
         m->AddKnowledge(f);
         m->AddKnowledge(
-            new GoUctAdditiveKnowledgeGreenpeep(bd, GreenpeepParam()));
+            new GoUctAdditiveKnowledgeGreenpeep(bd));
         return m;
     }
     break;
