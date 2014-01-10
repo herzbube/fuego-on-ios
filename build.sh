@@ -3,6 +3,17 @@
 # which in turn is a modified version of the script at
 # http://codefriend.blogspot.com/2011/09/creating-ios-framework-with-xcode4.html
 
+IPHONEOS_SDKPREFIX="iphoneos"
+IPHONE_SIMULATOR_SDKPREFIX="iphonesimulator"
+
+# Base SDK versions. Can be overridden by the caller. If left undefined, the
+# latest SDK known to your Xcode will be used
+: ${IPHONEOS_BASESDK_VERSION:=`xcrun --sdk $IPHONEOS_SDKPREFIX --show-sdk-version`}
+: ${IPHONE_SIMULATOR_BASESDK_VERSION:=`xcrun --sdk $IPHONE_SIMULATOR_SDKPREFIX --show-sdk-version`}
+
+# Deployment target versions. Can be overridden by the caller.
+: ${IPHONEOS_DEPLOYMENT_TARGET:=5.0}
+: ${IPHONE_SIMULATOR_DEPLOYMENT_TARGET:=5.0}
 
 # Sets the target folders and the final framework product.
 FRAMEWORK_NAME="fuego-on-ios"
@@ -12,23 +23,24 @@ FRAMEWORK_VERSION="A"
 # The following line create it in the root folder of the current project.
 FRAMEWORK_FOLDER="$(pwd)/ios/framework/${FRAMEWORK_NAME}.framework"
 
-
-IPHONEOS_BASESDK_VERSION=6.1
-IPHONEOS_SDKPREFIX="iphoneos"
+# Setup a few more variables
 IPHONEOS_SDKNAME="${IPHONEOS_SDKPREFIX}${IPHONEOS_BASESDK_VERSION}"
-IPHONE_SIMULATOR_BASESDK_VERSION=6.1
-IPHONE_SIMULATOR_SDKPREFIX="iphonesimulator"
 IPHONE_SIMULATOR_SDKNAME="${IPHONE_SIMULATOR_SDKPREFIX}${IPHONE_SIMULATOR_BASESDK_VERSION}"
 CONFIGURATION="Release"
-
 BUILD_FOLDER="$(pwd)/build"
 IPHONEOS_BUILD_FOLDER="${BUILD_FOLDER}/$CONFIGURATION-$IPHONEOS_SDKPREFIX"
 IPHONE_SIMULATOR_BUILD_FOLDER="${BUILD_FOLDER}/$CONFIGURATION-$IPHONE_SIMULATOR_SDKPREFIX"
+XCCONFIG_FILE="${BUILD_FOLDER}/fuego-on-ios.xcconfig"
 
+# Populate the .xcconfig file that overrides project settings
+rm -f "$XCCONFIG_FILE"
+mkdir -p "$BUILD_FOLDER"
+echo "IPHONEOS_DEPLOYMENT_TARGET = $IPHONEOS_DEPLOYMENT_TARGET" >>"$XCCONFIG_FILE"
+echo "IPHONE_SIMULATOR_BASESDK_VERSION = $IPHONE_SIMULATOR_BASESDK_VERSION" >>"$XCCONFIG_FILE"
 
 # Building both architectures.
-xcodebuild -configuration "$CONFIGURATION" -target "${FRAMEWORK_NAME}" -sdk "$IPHONEOS_SDKNAME"
-xcodebuild -configuration "$CONFIGURATION" -target "${FRAMEWORK_NAME}" -sdk "$IPHONE_SIMULATOR_SDKNAME"
+xcodebuild -xcconfig "$XCCONFIG_FILE" -configuration "$CONFIGURATION" -target "${FRAMEWORK_NAME}" -sdk "$IPHONEOS_SDKNAME"
+xcodebuild -xcconfig "$XCCONFIG_FILE" -configuration "$CONFIGURATION" -target "${FRAMEWORK_NAME}" -sdk "$IPHONE_SIMULATOR_SDKNAME"
 
 # Cleaning the oldest.
 if test -d "${FRAMEWORK_FOLDER}"; then

@@ -12,15 +12,25 @@
 #
 # To configure the script, define:
 #    BOOST_LIBS:        which libraries to build
-#    IPHONE_SDKVERSION: iPhone SDK version (e.g. 5.1)
+#    IPHONEOS_BASESDK_VERSION: iPhone SDK version (e.g. 5.1); if left
+#                       undefined, the latest SDK known to your Xcode will
+#                       will be used
+#    IPHONE_SIMULATOR_BASESDK_VERSION: iPhone Simulator SDK version (e.g.
+#                       5.1); if left undefined, the latest SDK known to
+#                       your Xcode will be used
 #
 # Then go get the source tar.bz of the boost you want to build, shove it in the
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
 #===============================================================================
 
+IPHONEOS_SDKPREFIX="iphoneos"
+IPHONE_SIMULATOR_SDKPREFIX="iphonesimulator"
+
 : ${BOOST_LIBS:="thread filesystem program_options system test date_time"}
-: ${IPHONE_SDKVERSION:=6.1}
-: ${IPHONE_DEPLOYMENT_TARGET:=5.0}
+: ${IPHONEOS_BASESDK_VERSION:=`xcrun --sdk $IPHONEOS_SDKPREFIX --show-sdk-version`}
+: ${IPHONEOS_DEPLOYMENT_TARGET:=5.0}
+: ${IPHONE_SIMULATOR_BASESDK_VERSION:=`xcrun --sdk $IPHONE_SIMULATOR_SDKPREFIX --show-sdk-version`}
+: ${IPHONE_SIMULATOR_DEPLOYMENT_TARGET:=5.0}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
 : ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -std=gnu++98 -stdlib=libstdc++"}
 
@@ -42,20 +52,25 @@ BOOST_SRC=$SRCDIR/boost-trunk
 
 #===============================================================================
 
-IPHONEOS_SDKPREFIX="iphoneos"
-IPHONEOS_SDKNAME="${IPHONEOS_SDKPREFIX}${IPHONE_SDKVERSION}"
-IPHONE_SIMULATOR_SDKPREFIX="iphonesimulator"
-IPHONE_SIMULATOR_SDKNAME="${IPHONE_SIMULATOR_SDKPREFIX}${IPHONE_SDKVERSION}"
+# These variables are known to the Apple compiler. At least
+# IPHONEOS_DEPLOYMENT_TARGET is, and if it remains exported it will be seen
+# by the compiler and cause the bjam build to fail. To prevent this, we
+# un-export the variables so that they stay hidden from the compiler.
+export -n IPHONEOS_DEPLOYMENT_TARGET
+export -n IPHONE_SIMULATOR_DEPLOYMENT_TARGET
+
+IPHONEOS_SDKNAME="${IPHONEOS_SDKPREFIX}${IPHONEOS_BASESDK_VERSION}"
+IPHONE_SIMULATOR_SDKNAME="${IPHONE_SIMULATOR_SDKPREFIX}${IPHONE_SIMULATOR_BASESDK_VERSION}"
 
 PLATFORMS_BASEDIR="$XCODE_ROOT/Platforms"
 IPHONEOS_PLATFORMDIR="$PLATFORMS_BASEDIR/iPhoneOS.platform"
 IPHONE_SIMULATOR_PLATFORMDIR="$PLATFORMS_BASEDIR/iPhoneSimulator.platform"
 
-IPHONEOS_BJAM_TOOLSET="${IPHONE_SDKVERSION}~iphone"
-IPHONE_SIMULATOR_BJAM_TOOLSET="${IPHONE_SDKVERSION}~iphonesim"
+IPHONEOS_BJAM_TOOLSET="${IPHONEOS_BASESDK_VERSION}~iphone"
+IPHONE_SIMULATOR_BJAM_TOOLSET="${IPHONE_SIMULATOR_BASESDK_VERSION}~iphonesim"
 
-IPHONEOS_CPPFLAGS="-miphoneos-version-min=$IPHONE_DEPLOYMENT_TARGET $EXTRA_CPPFLAGS"
-IPHONE_SIMULATOR_CPPFLAGS="-mios-simulator-version-min=$IPHONE_DEPLOYMENT_TARGET $EXTRA_CPPFLAGS"
+IPHONEOS_CPPFLAGS="-miphoneos-version-min=$IPHONEOS_DEPLOYMENT_TARGET $EXTRA_CPPFLAGS"
+IPHONE_SIMULATOR_CPPFLAGS="-mios-simulator-version-min=$IPHONE_SIMULATOR_DEPLOYMENT_TARGET $EXTRA_CPPFLAGS"
 
 ARM_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
 SIM_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
@@ -139,7 +154,7 @@ inventMissingHeaders()
     # They are supported on the device, so we copy them from x86 SDK to a staging area
     # to use them on ARM, too.
     echo Invent missing headers
-    cp $IPHONE_SIMULATOR_PLATFORMDIR/Developer/SDKs/iPhoneSimulator${IPHONE_SDKVERSION}.sdk/usr/include/{crt_externs,bzlib}.h $BOOST_SRC
+    cp $IPHONE_SIMULATOR_PLATFORMDIR/Developer/SDKs/iPhoneSimulator${IPHONE_SIMULATOR_BASESDK_VERSION}.sdk/usr/include/{crt_externs,bzlib}.h $BOOST_SRC
 }
 
 #===============================================================================
@@ -160,11 +175,11 @@ buildBoostForiPhoneOS()
     cd $BOOST_SRC
     
 	# Install this one so we can copy the includes for the frameworks...
-    ./bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static stage
-    ./bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=arm target-os=iphone macosx-version=iphone-${IPHONE_SDKVERSION} define=_LITTLE_ENDIAN link=static install
+    ./bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=arm target-os=iphone macosx-version=iphone-${IPHONEOS_BASESDK_VERSION} define=_LITTLE_ENDIAN link=static stage
+    ./bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=arm target-os=iphone macosx-version=iphone-${IPHONEOS_BASESDK_VERSION} define=_LITTLE_ENDIAN link=static install
     doneSection
 
-    ./bjam -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage --toolset=darwin-$IPHONE_SIMULATOR_BJAM_TOOLSET architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SDKVERSION} link=static stage
+    ./bjam -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage --toolset=darwin-$IPHONE_SIMULATOR_BJAM_TOOLSET architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SIMULATOR_BASESDK_VERSION} link=static stage
 	doneSection
 }
 
@@ -296,7 +311,8 @@ echo "BOOST_SRC:         $BOOST_SRC"
 echo "IOSBUILDDIR:       $IOSBUILDDIR"
 echo "PREFIXDIR:         $PREFIXDIR"
 echo "IOSFRAMEWORKDIR:   $IOSFRAMEWORKDIR"
-echo "IPHONE_SDKVERSION: $IPHONE_SDKVERSION"
+echo "IPHONEOS_BASESDK_VERSION: $IPHONEOS_BASESDK_VERSION"
+echo "IPHONE_SIMULATOR_BASESDK_VERSION: $IPHONE_SIMULATOR_BASESDK_VERSION"
 echo "XCODE_ROOT:        $XCODE_ROOT"
 echo "COMPILER:          $COMPILER"
 echo
