@@ -95,10 +95,17 @@ These are the build results that can be integrated into other Xcode projects:
 Most important build settings:
 
 * iOS SDK = The latest SDK known to your Xcode
-* Deployment target 5.0
+* Deployment target = 5.0
 * C++ Language Dialect = GNU++98 (`-std=gnu++98`)
 * C++ Standard Library = libstdc++ (`-stdlib=libstdc++`)
 * Boost libraries: thread, filesystem, program_options, system, test, date_time
+
+Environment variables that you can set and export to override build settings (both for the Boost and the Fuego build scripts):
+
+* IPHONEOS_BASESDK_VERSION
+* IPHONEOS_DEPLOYMENT_TARGET
+* IPHONE_SIMULATOR_BASESDK_VERSION
+* IPHONE_SIMULATOR_DEPLOYMENT_TARGET
 
 ## Repository maintenance
 
