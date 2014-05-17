@@ -129,6 +129,12 @@ updateBoost()
 	# Throw away local changes (i.e. modifications to user-config.jam)
 	git reset --hard
 	popd >/dev/null
+	
+	# These patches are required to make Boost 1.55.0 build with Clang 3.4 and
+	# later (Xcode 5.1 uses Clang 3.4). The list of patches that is required
+	# comes from this MacPorts ticket: https://trac.macports.org/ticket/42282
+	patch --forward -p1 <01-atomic-patch-6bb71fd.diff
+	patch --forward -p1 <02-atomic-patch-e4bde20.diff
 
 	cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
 using darwin : $IPHONEOS_BJAM_TOOLSET
