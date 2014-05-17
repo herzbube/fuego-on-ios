@@ -40,7 +40,13 @@ echo "IPHONE_SIMULATOR_BASESDK_VERSION = $IPHONE_SIMULATOR_BASESDK_VERSION" >>"$
 
 # Building both architectures.
 xcodebuild -xcconfig "$XCCONFIG_FILE" -configuration "$CONFIGURATION" -target "${FRAMEWORK_NAME}" -sdk "$IPHONEOS_SDKNAME"
+if test $? -ne 0; then
+  exit 1
+fi
 xcodebuild -xcconfig "$XCCONFIG_FILE" -configuration "$CONFIGURATION" -target "${FRAMEWORK_NAME}" -sdk "$IPHONE_SIMULATOR_SDKNAME"
+if test $? -ne 0; then
+  exit 1
+fi
 
 # Cleaning the oldest.
 if test -d "${FRAMEWORK_FOLDER}"; then
@@ -70,6 +76,9 @@ rm -r "${FRAMEWORK_FOLDER}/Versions/${FRAMEWORK_VERSION}/Resources/Headers" "${F
 
 # Uses the Lipo Tool to merge both binary files (i386 + armv7/armv7s) into one Universal final product.
 lipo -create "${IPHONEOS_BUILD_FOLDER}/lib${FRAMEWORK_NAME}.a" "${IPHONE_SIMULATOR_BUILD_FOLDER}/lib${FRAMEWORK_NAME}.a" -output "${FRAMEWORK_FOLDER}/Versions/${FRAMEWORK_VERSION}/${FRAMEWORK_NAME}"
+if test $? -ne 0; then
+  exit 1
+fi
 
 echo "Build finished"
 echo "The framework is located here: $FRAMEWORK_FOLDER"
