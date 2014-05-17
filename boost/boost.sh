@@ -28,9 +28,9 @@ IPHONE_SIMULATOR_SDKPREFIX="iphonesimulator"
 
 : ${BOOST_LIBS:="thread filesystem program_options system test date_time"}
 : ${IPHONEOS_BASESDK_VERSION:=`xcrun --sdk $IPHONEOS_SDKPREFIX --show-sdk-version`}
-: ${IPHONEOS_DEPLOYMENT_TARGET:=5.0}
+: ${IPHONEOS_DEPLOYMENT_TARGET:=7.0}
 : ${IPHONE_SIMULATOR_BASESDK_VERSION:=`xcrun --sdk $IPHONE_SIMULATOR_SDKPREFIX --show-sdk-version`}
-: ${IPHONE_SIMULATOR_DEPLOYMENT_TARGET:=5.0}
+: ${IPHONE_SIMULATOR_DEPLOYMENT_TARGET:=7.0}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
 : ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -std=gnu++98 -stdlib=libstdc++"}
 
