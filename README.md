@@ -95,7 +95,8 @@ These are the build results that can be integrated into other Xcode projects:
 Most important build settings:
 
 * iOS SDK = The latest SDK known to your Xcode
-* Deployment target = 5.0
+* Deployment target = 7.0
+* Architectures: armv7, armv7s, arm64 (iOS builds), i386, x86_64 (iPhone Simulator builds)
 * C++ Language Dialect = GNU++98 (`-std=gnu++98`)
 * C++ Standard Library = libstdc++ (`-stdlib=libstdc++`)
 * Boost libraries: thread, filesystem, program_options, system, test, date_time

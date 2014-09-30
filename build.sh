@@ -12,8 +12,8 @@ IPHONE_SIMULATOR_SDKPREFIX="iphonesimulator"
 : ${IPHONE_SIMULATOR_BASESDK_VERSION:=`xcrun --sdk $IPHONE_SIMULATOR_SDKPREFIX --show-sdk-version`}
 
 # Deployment target versions. Can be overridden by the caller.
-: ${IPHONEOS_DEPLOYMENT_TARGET:=5.0}
-: ${IPHONE_SIMULATOR_DEPLOYMENT_TARGET:=5.0}
+: ${IPHONEOS_DEPLOYMENT_TARGET:=7.0}
+: ${IPHONE_SIMULATOR_DEPLOYMENT_TARGET:=7.0}
 
 # Sets the target folders and the final framework product.
 FRAMEWORK_NAME="fuego-on-ios"
