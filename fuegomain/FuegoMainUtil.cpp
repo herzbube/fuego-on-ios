@@ -6,10 +6,12 @@
 #include "SgSystem.h"
 #include "FuegoMainUtil.h"
 
+#include <boost/filesystem.hpp>
 #include <fstream>
 #include <sstream>
 #include "GoBook.h"
 #include "SgDebug.h"
+#include "SgStringUtil.h"
 
 using namespace std;
 using namespace boost::filesystem;
@@ -20,9 +22,7 @@ namespace {
 
 bool LoadBookFile(GoBook& book, const path& file)
 {
-    path normalizedFile = file;
-    normalizedFile.normalize();
-    string nativeFile = normalizedFile.native_file_string();
+    std::string nativeFile = SgStringUtil::GetNativeFileName(file);
     SgDebug() << "Loading opening book from '" << nativeFile << "'... ";
     ifstream in(nativeFile.c_str());
     if (! in)

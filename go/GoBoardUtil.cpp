@@ -53,9 +53,9 @@ void ScorePositionRecurse(const GoBoard& bd, SgPoint p,
     if (c != SG_EMPTY && ! deadStones.Contains(p))
     {
         if (c == SG_BLACK)
-            ++isBlackAdjacent;
+            isBlackAdjacent = true;
         else
-            ++isWhiteAdjacent;
+            isWhiteAdjacent = true;
         return;
     }
     if (! marker.NewMark(p))

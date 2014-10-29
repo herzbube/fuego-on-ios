@@ -7,7 +7,8 @@ history.
 Current development version (branch VERSION_1_FIXES)
 ====================================================
 
-*
+* update configure.ac for current autotools
+* fixed to compile on clang-600.0.54
 
 Version 1.1 - 2011 Mar 11
 =========================

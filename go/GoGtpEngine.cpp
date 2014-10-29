@@ -377,8 +377,21 @@ void GoGtpEngine::CmdClearBoard(GtpCommand& cmd)
     cmd.CheckArgNone();
     CheckMaxClearBoard();
     if (! m_sentinelFile.empty() && exists(m_sentinelFile))
+    {
+    # if defined(BOOST_FILESYSTEM_VERSION)
+        SG_ASSERT (  BOOST_FILESYSTEM_VERSION == 2
+                  || BOOST_FILESYSTEM_VERSION == 3);
+    #endif
+        
+    #if (defined (BOOST_FILESYSTEM_VERSION) \
+              && (BOOST_FILESYSTEM_VERSION == 3))
         throw GtpFailure() << "Detected sentinel file '"
-                           << m_sentinelFile.native_file_string() << "'";
+        << m_sentinelFile.string() << "'";
+    #else
+        throw GtpFailure() << "Detected sentinel file '"
+        << m_sentinelFile.native_file_string() << "'";
+    #endif
+    }
     if (Board().MoveNumber() > 0)
         GameFinished();
     Init(Board().Size());
@@ -1608,7 +1621,11 @@ void GoGtpEngine::Ponder()
     // Call GoPlayer::Ponder() after 0.2 seconds delay to avoid calls in very
     // short intervals between received commands
     boost::xtime time;
-    boost::xtime_get(&time, boost::TIME_UTC);
+    #if BOOST_VERSION >= 105000
+        boost::xtime_get(&time, boost::TIME_UTC_);
+    #else
+        boost::xtime_get(&time, boost::TIME_UTC);
+    #endif
     bool aborted = false;
     for (int i = 0; i < 200; ++i)
     {

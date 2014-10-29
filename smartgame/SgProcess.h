@@ -5,11 +5,11 @@
 #ifndef SG_PROCESS_H
 #define SG_PROCESS_H
 
-// Not yet implemented for Windows
-#ifndef WIN32
-
-#include <ext/stdio_filebuf.h> // GCC specific
 #include <iosfwd>
+
+// Not yet implemented for Windows or clang
+#if defined(__GNUC__) && ! defined(__clang__)
+#include <ext/stdio_filebuf.h> // GCC specific
 #include <memory>
 
 //----------------------------------------------------------------------------
@@ -52,8 +52,21 @@ inline std::ostream& SgProcess::Output()
     return *m_out;
 }
 
-//----------------------------------------------------------------------------
+//-------------------------------------
+#else
 
-#endif // ifndef WIN32
+class SgProcess
+{
+public:
+    /** Constructor.
+     @throws SgException */
+    SgProcess(const std::string& command);
+    
+    ~SgProcess();
+};
+
+#endif // defined(__GNUC__) && ! defined(__clang__)
+
+//----------------------------------------------------------------------------
 
 #endif // SG_PROCESS_H

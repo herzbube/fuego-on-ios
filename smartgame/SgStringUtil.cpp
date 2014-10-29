@@ -6,12 +6,30 @@
 #include "SgSystem.h"
 #include "SgStringUtil.h"
 
+#include <boost/filesystem.hpp>
 #include <cctype>
 #include <sstream>
 
 using namespace std;
+using namespace boost::filesystem;
 
 //----------------------------------------------------------------------------
+
+string SgStringUtil::GetNativeFileName(const path& file)
+{
+    path normalizedFile = file;
+    normalizedFile.normalize();
+# if defined(BOOST_FILESYSTEM_VERSION)
+    SG_ASSERT (BOOST_FILESYSTEM_VERSION == 2
+            || BOOST_FILESYSTEM_VERSION == 3);
+#endif
+    
+#if (defined (BOOST_FILESYSTEM_VERSION) && (BOOST_FILESYSTEM_VERSION == 3))
+    return normalizedFile.string();
+#else
+    return normalizedFile.native_file_string();
+#endif
+}
 
 vector<string> SgStringUtil::SplitArguments(string s)
 {

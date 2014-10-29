@@ -21,8 +21,6 @@ using namespace std;
 using boost::barrier;
 using boost::condition;
 using boost::format;
-using boost::mutex;
-using boost::shared_ptr;
 using boost::io::ios_all_saver;
 
 #define BOOST_VERSION_MAJOR (BOOST_VERSION / 100000)
@@ -78,9 +76,9 @@ size_t GetMaxNodesDefault()
     return nodesPerTree;
 }
 
-void Notify(mutex& aMutex, condition& aCondition)
+void Notify(boost::mutex& aMutex, condition& aCondition)
 {
-    mutex::scoped_lock lock(aMutex);
+    boost::mutex::scoped_lock lock(aMutex);
     aCondition.notify_all();
 }
 
@@ -191,7 +189,7 @@ void SgUctSearch::Thread::operator()()
     if (DEBUG_THREADS)
         SgDebug() << "SgUctSearch::Thread: starting thread "
                   << m_state->m_threadId << '\n';
-    mutex::scoped_lock lock(m_startPlayMutex);
+    boost::mutex::scoped_lock lock(m_startPlayMutex);
     m_threadReady.wait();
     while (true)
     {
@@ -418,7 +416,7 @@ void SgUctSearch::CreateThreads()
     {
         auto_ptr<SgUctThreadState> state(
                                       m_threadStateFactory->Create(i, *this));
-        shared_ptr<Thread> thread(new Thread(*this, state));
+        boost::shared_ptr<Thread> thread(new Thread(*this, state));
         m_threads.push_back(thread);
     }
     m_tree.CreateAllocators(m_numberThreads);

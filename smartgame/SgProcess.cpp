@@ -6,9 +6,10 @@
 #include "SgSystem.h"
 #include "SgProcess.h"
 
-// Not yet implemented for Windows
-#ifndef WIN32
+#include "SgException.h"
 
+// Not yet implemented for Windows or clang
+#if defined(__GNUC__) && ! defined(__clang__)
 #include <errno.h>
 #include <fstream>
 #include <iostream>
@@ -18,7 +19,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "SgDebug.h"
-#include "SgException.h"
 #include "SgStringUtil.h"
 
 using namespace std;
@@ -107,10 +107,17 @@ SgProcess::SgProcess(const std::string& command)
     }
 }
 
-SgProcess::~SgProcess()
+#else
+
+SgProcess::SgProcess(const std::string& command)
 {
+    SG_UNUSED(command);
+    throw SgException("SgProcess not implemented on this architecture");
 }
 
-//----------------------------------------------------------------------------
+#endif // defined(__GNUC__) && ! defined(__clang__)
 
-#endif // ifndef WIN32
+SgProcess::~SgProcess()
+{ }
+
+//----------------------------------------------------------------------------

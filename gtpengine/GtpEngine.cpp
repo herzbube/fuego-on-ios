@@ -19,7 +19,6 @@
 
 using boost::barrier;
 using boost::condition;
-using boost::mutex;
 using boost::thread;
 using boost::xtime;
 using boost::xtime_get;
@@ -27,7 +26,7 @@ using boost::xtime_get;
 
 using namespace std;
 
-#ifdef WIN32
+#ifdef _MSC_VER
 // Don't report Visual C++ warning 4355 ('this' : used in base member
 // initializer list) in default warning level 3. The constructors of
 // ReadThread and PonderThread store a reference to 'this', which is
@@ -118,9 +117,9 @@ void Trim(string& str)
 /** Utility functions for Boost.Thread. */
 namespace {
 
-void Notify(mutex& aMutex, condition& aCondition)
+void Notify(boost::mutex& aMutex, condition& aCondition)
 {
-    mutex::scoped_lock lock(aMutex);
+    boost::mutex::scoped_lock lock(aMutex);
     aCondition.notify_all();
 }
 
@@ -167,15 +166,15 @@ private:
 
     barrier m_threadReady;
 
-    mutex m_startPonderMutex;
+    boost::mutex m_startPonderMutex;
 
-    mutex m_ponderFinishedMutex;
+    boost::mutex m_ponderFinishedMutex;
 
     condition m_startPonder;
 
     condition m_ponderFinished;
 
-    mutex::scoped_lock m_ponderFinishedLock;
+    boost::mutex::scoped_lock m_ponderFinishedLock;
 
     /** The thread to run the ponder function.
         Order dependency: must be constructed as the last member, because the
@@ -190,7 +189,7 @@ PonderThread::Function::Function(PonderThread& ponderThread)
 
 void PonderThread::Function::operator()()
 {
-    mutex::scoped_lock lock(m_ponderThread.m_startPonderMutex);
+    boost::mutex::scoped_lock lock(m_ponderThread.m_startPonderMutex);
     m_ponderThread.m_threadReady.wait();
     while (true)
     {
@@ -281,15 +280,15 @@ private:
 
     barrier m_threadReady;
 
-    mutex m_waitCommandMutex;
+    boost::mutex m_waitCommandMutex;
 
     condition m_waitCommand;
 
-    mutex m_commandReceivedMutex;
+    boost::mutex m_commandReceivedMutex;
 
     condition m_commandReceived;
 
-    mutex::scoped_lock m_commandReceivedLock;
+    boost::mutex::scoped_lock m_commandReceivedLock;
 
     /** The thread to run the read command function.
         Order dependency: must be constructed as the last member, because the
@@ -304,7 +303,7 @@ ReadThread::Function::Function(ReadThread& readThread)
 
 void ReadThread::Function::operator()()
 {
-    mutex::scoped_lock lock(m_readThread.m_waitCommandMutex);
+    boost::mutex::scoped_lock lock(m_readThread.m_waitCommandMutex);
     m_readThread.m_threadReady.wait();
     GtpEngine& engine = m_readThread.m_engine;
     GtpInputStream& in = m_readThread.m_in;
@@ -349,7 +348,11 @@ void ReadThread::Function::ExecuteSleepLine(const string& line)
     {
         cerr << "GtpEngine: sleep " << seconds << '\n';
         xtime time;
-        xtime_get(&time, boost::TIME_UTC);
+        #if BOOST_VERSION >= 105000
+            xtime_get(&time, boost::TIME_UTC_);
+        #else
+            xtime_get(&time, boost::TIME_UTC);
+        #endif
         time.sec += seconds;
         thread::sleep(time);
         cerr << "GtpEngine: sleep done\n";

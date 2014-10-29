@@ -53,23 +53,12 @@ private:
 
 std::ostream& operator<<(std::ostream& stream, const SgWritePointSetID& w);
 
-//----------------------------------------------------------------------------
-
-/** Read all points in set. */
-class SgReadPointSet
-{
-public:
-    SgReadPointSet(SgPointSet& pointSet);
-
-    std::istream& Read(std::istream& in) const;
-
-private:
-    mutable SgPointSet& m_pointSet; // allow temp objects to modify
-};
-
-/** @relatesalso SgReadPointSet */
-std::istream& operator>>(std::istream& in, const SgReadPointSet& Read);
-
+/** Read pointset from stream.
+	The format is:
+    1. number of points in set
+	2. List of point coordinates
+    @todo No error checking is done.
+ */
 std::istream& operator>>(std::istream& in, SgPointSet& pointSet);
 
 //----------------------------------------------------------------------------
