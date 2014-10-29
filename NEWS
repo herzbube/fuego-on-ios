@@ -9,6 +9,7 @@ Current development version (branch VERSION_1_FIXES)
 
 * update configure.ac for current autotools
 * fixed to compile on clang-600.0.54
+* fixed to compile without warnings on gcc 4.6.3 on Ubuntu
 
 Version 1.1 - 2011 Mar 11
 =========================
