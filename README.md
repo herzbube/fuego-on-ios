@@ -8,7 +8,7 @@ A secondary goal of the Fuego on iOS project is to provide an iOS build of Fuego
 
 Fuego on iOS currently combines
 
-* Boost 1.56.0
+* Boost 1.57.0
 * Fuego trunk r1728
 
 ## Quickstart Guide
