@@ -48,7 +48,7 @@ IPHONE_SIMULATOR_SDKPREFIX="iphonesimulator"
 : ${IOSFRAMEWORKDIR:=`pwd`/ios/framework}
 : ${COMPILER:="clang"}
 
-BOOST_SRC=$SRCDIR/boost-trunk
+BOOST_SRC=$SRCDIR/modular-boost
 
 #===============================================================================
 
@@ -109,10 +109,22 @@ doneSection()
 cleanEverythingReadyToStart()
 {
     echo Cleaning everything before we start to build...
-	rm -rf iphone-build iphonesim-build
+    rm -rf iphone-build iphonesim-build
     rm -rf $IOSBUILDDIR
     rm -rf $PREFIXDIR
     rm -rf $IOSFRAMEWORKDIR/$FRAMEWORK_NAME.framework
+    
+    # No need to git fetch, we expect that the submodule is up-to-date
+
+    pushd $BOOST_SRC >/dev/null
+    # Remove everything not under version control...
+    git clean -dfx
+    git submodule foreach --recursive git clean -dfx
+    # Throw away local changes (i.e. modifications to user-config.jam)
+    git reset --hard
+    git submodule foreach --recursive git reset --hard
+    popd >/dev/null
+
     doneSection
 }
 
@@ -121,22 +133,7 @@ updateBoost()
 {
     echo Updating boost into $BOOST_SRC...
 
-	# No need to git fetch, we expect that the submodule is up-to-date
-
-	pushd $BOOST_SRC >/dev/null
-	# Remove everything not under version control...
-	git clean -dfx
-	# Throw away local changes (i.e. modifications to user-config.jam)
-	git reset --hard
-	popd >/dev/null
-	
-	# These patches are required to make Boost 1.55.0 build with Clang 3.4 and
-	# later (Xcode 5.1 uses Clang 3.4). The list of patches that is required
-	# comes from this MacPorts ticket: https://trac.macports.org/ticket/42282
-	patch --forward -p1 <01-atomic-patch-6bb71fd.diff
-	patch --forward -p1 <02-atomic-patch-e4bde20.diff
-
-	cat >> $BOOST_SRC/tools/build/v2/user-config.jam <<EOF
+	cat >> $BOOST_SRC/project-config.jam <<EOF
 using darwin : $IPHONEOS_BJAM_TOOLSET
    : $ARM_COMPILER -arch armv7 -arch armv7s -arch arm64 -fvisibility=hidden -fvisibility-inlines-hidden $IPHONEOS_CPPFLAGS
    : <striper> <root>$IPHONEOS_PLATFORMDIR/Developer
@@ -154,23 +151,17 @@ EOF
 
 #===============================================================================
 
-inventMissingHeaders()
-{
-    # These files are missing in the ARM iPhoneOS SDK, but they are in the simulator.
-    # They are supported on the device, so we copy them from x86 SDK to a staging area
-    # to use them on ARM, too.
-    echo Invent missing headers
-    cp $IPHONE_SIMULATOR_PLATFORMDIR/Developer/SDKs/iPhoneSimulator${IPHONE_SIMULATOR_BASESDK_VERSION}.sdk/usr/include/{crt_externs,bzlib}.h $BOOST_SRC
-}
-
-#===============================================================================
-
 bootstrapBoost()
 {
     cd $BOOST_SRC
     BOOST_LIBS_COMMA=$(echo $BOOST_LIBS | sed -e "s/ /,/g")
     echo "Bootstrapping (with libs $BOOST_LIBS_COMMA)"
     ./bootstrap.sh --with-libraries=$BOOST_LIBS_COMMA
+    # This is important: Without this step some libraries may not compile
+    # because they don't find the necessary headers. Also, without this
+    # step the resulting framework bundle will not contain some headers.
+    echo "Setting up headers"
+    ./b2 headers
     doneSection
 }
 
@@ -313,7 +304,6 @@ EOF
 mkdir -p $IOSBUILDDIR
 
 cleanEverythingReadyToStart
-updateBoost
 
 BOOST_VERSION=`cd $BOOST_SRC; git describe --tags | sed -e 's/^.*\/Boost_\([^\/]*\)/\1/'`
 echo "BOOST_VERSION:     $BOOST_VERSION"
@@ -328,8 +318,8 @@ echo "XCODE_ROOT:        $XCODE_ROOT"
 echo "COMPILER:          $COMPILER"
 echo
 
-inventMissingHeaders
 bootstrapBoost
+updateBoost
 buildBoostForiPhoneOS
 scrunchAllLibsTogetherInOneLibPerPlatform
 buildFramework $IOSFRAMEWORKDIR $IOSBUILDDIR

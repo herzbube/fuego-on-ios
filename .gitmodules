@@ -1,3 +1,3 @@
-[submodule "boost/boost-trunk"]
-	path = boost/boost-trunk
-	url = git://github.com/ned14/boost-trunk.git
+[submodule "boost/modular-boost"]
+	path = boost/modular-boost
+	url = git@github.com:boostorg/boost.git

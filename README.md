@@ -8,7 +8,7 @@ A secondary goal of the Fuego on iOS project is to provide an iOS build of Fuego
 
 Fuego on iOS currently combines
 
-* Boost 1.55.0
+* Boost 1.57.0
 * Fuego trunk r1728
 
 ## Quickstart Guide
@@ -16,7 +16,7 @@ Fuego on iOS currently combines
 The project is set up with the `fuego-on-ios` branch as the default branch. This should allow you to get going immediately:
 
 1. Clone the repository
-1. Initialize the "boost-trunk" submodule. Find the necessary commands further down in the section "[The boost-trunk submodule](#the-boost-trunk-submodule)".
+1. Initialize the "modular-boost" submodule. Find the necessary commands further down in the section "[The modular-boost submodule](#the-modular-boost-submodule)".
 1. Build Boost, then build Fuego. Find the necessary commands further down in the section "[How to build](#how-to-build)".
 
 That's it, now all you need to do is integrate the Boost and Fuego frameworks into your project.
@@ -43,7 +43,7 @@ Currently, upstream changes are manually synchronized from time to time. A futur
 
 The `fuego-on-ios` branch is dedicated to maintaining the following stuff:
 
-1. `boost/boost-trunk`: A Git submodule that tracks a specific release of Boost in [this upstream repository](https://github.com/ned14/boost-trunk).
+1. `boost/modular-boost`: A Git submodule that tracks a specific release of Boost in [the official upstream repository](https://github.com/boostorg/boost).
 1. `boost/boost.sh`: A script that builds Boost for the iOS platform and packages it into a framework bundle. The script is a derivate of Pete Goodliffe's "Boost on iPhone" script. The script was forked from [this popular repo](https://gitorious.org/boostoniphone/galbraithjosephs-boostoniphone) so that outstanding bugs could be fixed for the Fuego on iOS project.
 1. `fuego-on-ios.xcodeproj`: The Xcode project that defines the build of Fuego for the iOS platform.
 1. `build.sh`: A script that uses the Xcode project to build Fuego (via `xcodebuild`) and packages the result into a framework bundle.
@@ -64,19 +64,19 @@ You should use `fuego-on-ios` if you want a ready-to-build Fuego + Boost environ
 
 You probably will not be interested in `fuego-for-littlego` at all, unless you want to study how the [Little Go](https://github.com/herzbube/littlego) app integrates Fuego.
 
-## The boost-trunk submodule
+## The modular-boost submodule
 
-The `fuego-on-ios` branch (and also the `fuego-for-littlego` branch) contain a Git submodule in this project folder:
+The `fuego-on-ios` branch (and also the `fuego-for-littlego` branch) contains a Git submodule in this project folder:
 
-    boost/boost-trunk
+    boost/modular-boost
 
-The submodule name is derived from the name of the upstream Git repository (https://github.com/ned14/boost-trunk). Despite the name, the submodule does not point to Boost's upstream trunk, it actually points to a specific Boost release. After you clone the Fuego on iOS repository, you must perform the following commands to also clone the submodule:
+The submodule points to a specific Boost release in the [official upstream Boost repository on GitHub](https://github.com/boostorg/boost). After you clone the Fuego on iOS repository, you must perform the following commands to also clone the submodule:
 
     cd /path/to/fuego-on-ios
     git submodule init
     git submodule update
 
-**IMPORTANT:** Although the submodule tracks only a single tag of the upstream Git repository, cloning requires that the full upstream repo is replicated locally. Because the Boost project has a long history, the resulting download is quite large. At the time of writing the download size was 362 MB, and on my machine the cloning operation took roughly 10 minutes (including download time at about 1.2 MB/s).
+**IMPORTANT:** Although the submodule tracks only a single tag of the upstream Git repository, cloning requires that the full upstream repo is replicated locally. Because the Boost project has a long history, the resulting download is quite large. At the time of writing the initial clone consumes roughly 480 MB of disk space. On a 3.0 mbps Internet connection this takes slightly more than 20 minutes to download.
 
 ## How to build
 
@@ -87,7 +87,7 @@ These are the commands to first build Boost, then build Fuego:
     cd ..
     ./build.sh
 
-These are the build results that can be integrated into other Xcode projects:
+And these are the results of the build, to be integrated into other Xcode projects:
 
     boost/ios/framework/boost.framework
     ios/framework/fuego-on-ios.framework
@@ -95,10 +95,11 @@ These are the build results that can be integrated into other Xcode projects:
 Most important build settings:
 
 * iOS SDK = The latest SDK known to your Xcode
-* Deployment target = 5.0
+* Deployment target = 7.0
+* Architectures: armv7, armv7s, arm64 (iOS builds), i386, x86_64 (iPhone Simulator builds)
 * C++ Language Dialect = GNU++98 (`-std=gnu++98`)
 * C++ Standard Library = libstdc++ (`-stdlib=libstdc++`)
-* Boost libraries: thread, filesystem, program_options, system, test, date_time
+* Boost libraries: thread, filesystem, program_options, system, test, date_time (these are the libraries required by Fuego)
 
 Environment variables that you can set and export to override build settings (both for the Boost and the Fuego build scripts):
 
@@ -109,7 +110,7 @@ Environment variables that you can set and export to override build settings (bo
 
 ## Repository maintenance
 
-These are some notes on how to maintain the Fuego on iOS repository and its branches.
+Here are some notes on how to maintain the Fuego on iOS repository and its branches.
 
 ##### Synchronizing master with upstream Fuego
 
@@ -149,15 +150,15 @@ After `fuego-on-ios` has been updated, changes must be further merged into the `
 
 ##### Upgrading to a new Boost release
 
-To upgrade to a new Boost release, the `boost-trunk` submodule must be changed so that it points to the commit of the Git tag that represents the desired release. This must be done on the `fuego-on-ios` branch. For instance, to upgrade to version 1.54.0:
+To upgrade to a new Boost release, the `modular-boost` submodule must be changed so that it points to the commit of the Git tag that represents the desired release. This must be done on the `fuego-on-ios` branch. For instance, to upgrade to version 1.56.0:
 
     cd /path/to/fugo-on-ios
     git checkout fuego-on-ios
-    cd boost/boost-trunk
-    git checkout release/Boost_1_54_0
+    cd boost/modular-boost
+    git checkout boost-1.56.0
     cd ../..
     git add .
-    git commit -m ""upgrade submodule boost-trunk to tag release/Boost_1_54_0"
+    git commit -m "upgrade submodule modular-boost to tag boost-1.56.0"
 
 There is a possibility that the Fuego source code does not build with the new Boost release. If such a problem occurs, check with Fuego upstream if they already know a solution.
 
