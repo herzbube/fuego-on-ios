@@ -43,7 +43,7 @@ Currently, upstream changes are manually synchronized from time to time. A futur
 
 The `fuego-on-ios` branch is dedicated to maintaining the following stuff:
 
-1. `boost/modular-boost`: A Git submodule that tracks a specific release of Boost in [this upstream repository](https://github.com/boostorg/boost).
+1. `boost/modular-boost`: A Git submodule that tracks a specific release of Boost in [the official upstream repository](https://github.com/boostorg/boost).
 1. `boost/boost.sh`: A script that builds Boost for the iOS platform and packages it into a framework bundle. The script is a derivate of Pete Goodliffe's "Boost on iPhone" script. The script was forked from [this popular repo](https://gitorious.org/boostoniphone/galbraithjosephs-boostoniphone) so that outstanding bugs could be fixed for the Fuego on iOS project.
 1. `fuego-on-ios.xcodeproj`: The Xcode project that defines the build of Fuego for the iOS platform.
 1. `build.sh`: A script that uses the Xcode project to build Fuego (via `xcodebuild`) and packages the result into a framework bundle.
@@ -70,7 +70,7 @@ The `fuego-on-ios` branch (and also the `fuego-for-littlego` branch) contains a 
 
     boost/modular-boost
 
-The submodule points to a specific Boost release in the official upstream Boost repository on GitHub (https://github.com/boostorg/boost). After you clone the Fuego on iOS repository, you must perform the following commands to also clone the submodule:
+The submodule points to a specific Boost release in the [official upstream Boost repository on GitHub](https://github.com/boostorg/boost). After you clone the Fuego on iOS repository, you must perform the following commands to also clone the submodule:
 
     cd /path/to/fuego-on-ios
     git submodule init
@@ -87,7 +87,7 @@ These are the commands to first build Boost, then build Fuego:
     cd ..
     ./build.sh
 
-These are the build results that can be integrated into other Xcode projects:
+And these are the results of the build, to be integrated into other Xcode projects:
 
     boost/ios/framework/boost.framework
     ios/framework/fuego-on-ios.framework
@@ -99,7 +99,7 @@ Most important build settings:
 * Architectures: armv7, armv7s, arm64 (iOS builds), i386, x86_64 (iPhone Simulator builds)
 * C++ Language Dialect = GNU++98 (`-std=gnu++98`)
 * C++ Standard Library = libstdc++ (`-stdlib=libstdc++`)
-* Boost libraries: thread, filesystem, program_options, system, test, date_time
+* Boost libraries: thread, filesystem, program_options, system, test, date_time (these are the libraries required by Fuego)
 
 Environment variables that you can set and export to override build settings (both for the Boost and the Fuego build scripts):
 
@@ -110,7 +110,7 @@ Environment variables that you can set and export to override build settings (bo
 
 ## Repository maintenance
 
-These are some notes on how to maintain the Fuego on iOS repository and its branches.
+Here are some notes on how to maintain the Fuego on iOS repository and its branches.
 
 ##### Synchronizing master with upstream Fuego
 
