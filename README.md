@@ -8,7 +8,7 @@ A secondary goal of the Fuego on iOS project is to provide an iOS build of Fuego
 
 Fuego on iOS currently combines
 
-* Boost 1.57.0
+* Boost 1.61.0
 * Fuego trunk r1728
 
 ## Quickstart Guide
@@ -157,10 +157,21 @@ To upgrade to a new Boost release, the `modular-boost` submodule must be changed
     cd boost/modular-boost
     git checkout boost-1.56.0
     cd ../..
+    vi README.md   # update Boost version
     git add .
     git commit -m "upgrade submodule modular-boost to tag boost-1.56.0"
 
 There is a possibility that the Fuego source code does not build with the new Boost release. If such a problem occurs, check with Fuego upstream if they already know a solution.
+
+After `fuego-on-ios` has been updated, changes must be further merged into the `fuego-for-littlego` branch.
+
+##### Increasing the deployment target
+
+Increasing the deployment target is done on the `fuego-on-ios` branch. Edit the following files to increase the deployment target:
+
+* build.sh (build script for Fuego)
+* boost/boost.sh (build script for Boost)
+* README.md (this file)
 
 After `fuego-on-ios` has been updated, changes must be further merged into the `fuego-for-littlego` branch.
 
