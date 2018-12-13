@@ -92,13 +92,13 @@ And these are the results of the build, to be integrated into other Xcode projec
     boost/ios/framework/boost.framework
     ios/framework/fuego-on-ios.framework
 
-Most important build settings:
+The most important build settings are:
 
 * iOS SDK = The latest SDK known to your Xcode
 * Deployment target = 7.0
 * Architectures: armv7, armv7s, arm64 (iOS builds), i386, x86_64 (iPhone Simulator builds)
 * C++ Language Dialect = GNU++98 (`-std=gnu++98`)
-* C++ Standard Library = libstdc++ (`-stdlib=libstdc++`)
+* C++ Standard Library = libc++ (`-stdlib=libc++`)
 * Boost libraries: thread, filesystem, program_options, system, test, date_time (these are the libraries required by Fuego)
 
 Environment variables that you can set and export to override build settings (both for the Boost and the Fuego build scripts):
@@ -218,7 +218,7 @@ This takes quite a long time because it fetches all revisions from upstream Subv
 
 ##### Build Fuego for Mac OS X
 
-Assuming you have Boost installed somewhere locally (e.g. through Fink, MacPorts or Brew), you can run these commands to build and run Fuego for Mac OS X:
+Assuming you have Boost installed somewhere locally (e.g. through Fink, MacPorts or Homebrew), you can run these commands to build and run Fuego for Mac OS X:
 
     cd /path/to/fuego-on-ios
     autoreconf -i
@@ -264,7 +264,7 @@ Project settings changes:
 * Project > iOS Deployment Target = iOS 5.0
 * Project > Public Headers Folder Path = Headers
 * Project > C++ Language Dialect = GNU++98 (-std=gnu++98)
-* Project > C++ Standard Library = libstdc++ (-stdlib=libstdc++)
+* Project > C++ Standard Library = libstdc++ (-stdlib=libstdc++), in Xcode 10 to be changed to libc++ (-stdlib=libc++)
 * Project > Inline Methods Hidden = Yes (-fvisibility-inlines-hidden)
 * Project > Symbols hidden by Default = Yes (-fvisibility=hidden)
 * Project > Preprocessor Macros = NDEBUG (fixes a runtime error in case Fuego is run with the command line option `--quiet`)
