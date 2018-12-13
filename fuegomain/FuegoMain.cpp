@@ -7,5 +7,5 @@
 
 int main(int argc, char** argv)
 {
-  return FuegoMainUtil::FuegoMain(argc, argv);
+  return FuegoMainUtil::FuegoMain(argc, argv, 0, 0);
 }

@@ -38,6 +38,7 @@ namespace FuegoMainUtil
     /** Don't care whether Fuego is run from the command line, or invoked via
         function call. */
     int FuegoMain(int argc, char** argv);
+    int FuegoMain(int argc, char** argv, std::istream* gtpClientInputStream, std::ostream* gtpClientOutputStream);
 }
 
 //----------------------------------------------------------------------------

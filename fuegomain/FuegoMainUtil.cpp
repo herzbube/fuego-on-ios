@@ -84,10 +84,6 @@ int g_srand;
 
 vector<string> g_inputFiles;
 
-string g_inputPipe;
-
-string g_outputPipe;
-
 // @} // @name
 
 /** Get program directory from program path.
@@ -116,8 +112,6 @@ void MutuallyExclusiveOptions(const po::variables_map& vm,
     if (0 == vm.count(option1) || 0 == vm.count(option2))
         return;
     if (vm[option1].defaulted() || vm[option2].defaulted())
-        return;
-    if (g_inputPipe.empty() || g_inputFiles.empty())
         return;
     string errorMessage = "Options '" + string(option1)
                           + "' and '" + string(option2)
@@ -171,12 +165,6 @@ bool ParseOptions(int argc, char** argv)
     hiddenOptions.add_options()
         ("input-file", po::value<vector<string> >(&g_inputFiles),
          "input file");
-    hiddenOptions.add_options()
-        ("input-pipe", po::value<string>(&g_inputPipe)->default_value(""),
-         "input pipe");
-    hiddenOptions.add_options()
-        ("output-pipe", po::value<string>(&g_outputPipe)->default_value(""),
-         "output pipe");
     po::options_description allOptions;
     allOptions.add(normalOptions).add(hiddenOptions);
     po::positional_options_description positionalOptions;
@@ -260,7 +248,7 @@ std::string FuegoMainUtil::Version()
     return s.str();
 }
 
-int FuegoMainUtil::FuegoMain(int argc, char** argv)
+int FuegoMainUtil::FuegoMain(int argc, char** argv, std::istream* gtpClientInputStream, std::ostream* gtpClientOutputStream)
 {
     if (argc > 0 && argv != 0)
     {
@@ -301,24 +289,17 @@ int FuegoMainUtil::FuegoMain(int argc, char** argv)
         if (g_config != "")
             engine.ExecuteFile(g_config);
 
-        std::istream* pInputStream = &std::cin;
-        std::ifstream inputPipeStream;
-        if (! g_inputPipe.empty())
-        {
-          inputPipeStream.open(g_inputPipe.c_str());
-          if (! inputPipeStream)
-            throw SgException(boost::format("Error input pipe '%1%'") % g_inputPipe);
-          pInputStream = &inputPipeStream;
-        }
-        std::ostream* pOutputStream = &std::cout;
-        std::ofstream outputPipeStream;
-        if (! g_outputPipe.empty())
-        {
-          outputPipeStream.open(g_outputPipe.c_str());
-          if (! outputPipeStream)
-            throw SgException(boost::format("Error output pipe '%1%'") % g_outputPipe);
-          pOutputStream = &outputPipeStream;
-        }
+        std::istream* pInputStream;
+        if (gtpClientInputStream)
+            pInputStream = gtpClientInputStream;
+        else
+            pInputStream = &std::cin;
+
+        std::ostream* pOutputStream;
+        if (gtpClientOutputStream)
+            pOutputStream = gtpClientOutputStream;
+        else
+            pOutputStream = &std::cout;
 
         if (! g_inputFiles.empty())
         {
