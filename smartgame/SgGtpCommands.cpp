@@ -15,6 +15,10 @@
 #include "SgRandom.h"
 #include "SgTime.h"
 
+#if __APPLE__
+#include "TargetConditionals.h"
+#endif
+
 using namespace std;
 
 //----------------------------------------------------------------------------
@@ -148,6 +152,8 @@ void SgGtpCommands::CmdDebugger(GtpCommand& cmd)
 {
 #if WIN32
     throw GtpFailure("command not implemented on Windows");
+#elif __APPLE__ && TARGET_OS_IPHONE
+    throw GtpFailure("command not implemented on iOS");
 #else
     string type = cmd.Arg();
     const char* path = m_programPath;
