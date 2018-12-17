@@ -151,6 +151,27 @@ EOF
 
 #===============================================================================
 
+patchBoost()
+{
+    echo Patching boost ...
+
+    # Duplicate object file "utf8_codecvt_facet.o" causes build warnings in consuming projects.
+    # Renaming source files causes the object files to have unique names.
+    # copied from https://github.com/danoli3/ofxiOSBoost/commit/80fe8ef7b71da93d39fafa9a249da51c8d643ab2
+    # which in turn copied from http://swift.im/git/swift/tree/3rdParty/Boost/update.sh#n48?id=8dce1cd03729624a25a98dd2c0d026b93e452f86
+    echo Fixing utf8_codecvt_facet.cpp duplicates...
+
+    [ -f "$BOOST_SRC/libs/filesystem/src/utf8_codecvt_facet.cpp" ] && (mv "$BOOST_SRC/libs/filesystem/src/utf8_codecvt_facet.cpp" "$BOOST_SRC/libs/filesystem/src/filesystem_utf8_codecvt_facet.cpp" )
+    sed -i .bak 's/utf8_codecvt_facet/filesystem_utf8_codecvt_facet/' "$BOOST_SRC/libs/filesystem/build/Jamfile.v2"
+
+    [ -f "$BOOST_SRC/libs/program_options/src/utf8_codecvt_facet.cpp" ] && (mv "$BOOST_SRC/libs/program_options/src/utf8_codecvt_facet.cpp" "$BOOST_SRC/libs/program_options/src/program_options_utf8_codecvt_facet.cpp" )
+    sed -i .bak 's/utf8_codecvt_facet/program_options_utf8_codecvt_facet/' "$BOOST_SRC/libs/program_options/build/Jamfile.v2"
+
+    doneSection
+}
+
+#===============================================================================
+
 bootstrapBoost()
 {
     cd $BOOST_SRC
@@ -320,6 +341,7 @@ echo
 
 bootstrapBoost
 updateBoost
+patchBoost
 buildBoostForiPhoneOS
 scrunchAllLibsTogetherInOneLibPerPlatform
 buildFramework $IOSFRAMEWORKDIR $IOSBUILDDIR
