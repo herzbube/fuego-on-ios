@@ -266,6 +266,35 @@ namespace GoGameUtil
         variation)
         @return false if moveNumber greater than moves in main variation */
     bool GotoBeforeMove(GoGame* game, int moveNumber);
+
+    /** Returns a collection of points, in no particular order, that are
+        occupied by black handicap stones. The collection is empty if no
+        handicap stones have been placed.
+        @param game (current node can be any node)
+        @return SgVector<SgPoint> collection of points occupied by black
+                handicap stones */
+    SgVector<SgPoint> GetHandicapPoints(GoGame* game);
+
+    /** Returns a collection of points, in no particular order, that are
+        set up with stones of the specified color prior to the first move of
+        the game. Handicap stones are excluded. Only setups in the main
+        variation are considered. The collection is empty if no setup stones of
+        the specified color have been placed in the main variation.
+        @param game (current node can be any node)
+        @param color the color of the setup stones to list
+        @return SgVector<SgPoint> collection of points occupied by setup
+                stones of the specified color in the main variation */
+    SgVector<SgPoint> GetSetupPoints(GoGame* game, SgBlackWhite color);
+
+    /** Returns the player who is set up to play first. Only setups in the main
+        variation are considered.
+        @param game (current node can be any node)
+        @return int SG_BLACK or SG_WHITE if a player is set up to play first in
+                the main variation. A value != SG_BLACK and SG_WHITE if no
+                player is set up to play first in the main variation. Test the
+                result value with SgIsBlackWhite() to find out if this is the
+                case. */
+    int GetSetupPlayer(GoGame* game);
 }
 
 //----------------------------------------------------------------------------
