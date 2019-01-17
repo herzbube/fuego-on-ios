@@ -131,8 +131,9 @@ GoEyeStatus BulkyFiveNakade(const GoBoard& bd,
         // check if both empty points adjacent to block. if yes, nakade.
         // if no, alive.
         {
-            SG_ASSERT((points & bd.AllEmpty()).IsSize(2));
-            for (SgSetIterator it(points & bd.AllEmpty()); it; ++it)
+            SgPointSet empty = (points & bd.AllEmpty());
+            SG_ASSERT(empty.IsSize(2));
+            for (SgSetIterator it(empty); it; ++it)
             {
                 if (bd.NumNeighbors(*it, stoneColor) == 0)
                 {
