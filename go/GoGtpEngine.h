@@ -100,6 +100,8 @@ public:
     virtual void CmdKomi(GtpCommand&);
     virtual void CmdListHandicap(GtpCommand&);
     virtual void CmdListMoves(GtpCommand&);
+    virtual void CmdListSetup(GtpCommand&);
+    virtual void CmdListSetupPlayer(GtpCommand&);
     virtual void CmdListStones(GtpCommand&);
     virtual void CmdLoadSgf(GtpCommand&);
     virtual void CmdName(GtpCommand&);

@@ -131,6 +131,8 @@ GoGtpEngine::GoGtpEngine(int fixedBoardSize, const char* programPath,
     Register("komi", &GoGtpEngine::CmdKomi, this);
     Register("list_handicap", &GoGtpEngine::CmdListHandicap, this);
     Register("list_moves", &GoGtpEngine::CmdListMoves, this);
+    Register("list_setup", &GoGtpEngine::CmdListSetup, this);
+    Register("list_setup_player", &GoGtpEngine::CmdListSetupPlayer, this);
     Register("list_stones", &GoGtpEngine::CmdListStones, this);
     Register("loadsgf", &GoGtpEngine::CmdLoadSgf, this);
     Register("play", &GoGtpEngine::CmdPlay, this);
@@ -641,24 +643,20 @@ void GoGtpEngine::CmdKomi(GtpCommand& cmd)
 void GoGtpEngine::CmdListHandicap(GtpCommand& cmd)
 {
   cmd.CheckArgNone();
-  const SgNode* handicapNode = GoNodeUtil::GetHandicapNode(m_game.CurrentNode());
-  if (! handicapNode)
-    return;
-  const SgPropID addBlackPropID = SG_PROP_ADD_BLACK;
-  if (handicapNode->HasProp(addBlackPropID))
+
+  SgVector<SgPoint> handicapStoneList = GoGameUtil::GetHandicapPoints(&m_game);
+
+  bool isFirst = true;
+  for (SgVectorIterator<SgPoint> it(handicapStoneList); it; ++it)
   {
-    SgPropAddStone* propAddStone = static_cast<SgPropAddStone*>(handicapNode->Get(addBlackPropID));
-    const SgVector<SgPoint>& handicapStoneList = propAddStone->Value();
-    bool isFirst = true;
-    for (SgVectorIterator<SgPoint> it(handicapStoneList); it; ++it)
-    {
-      SgPoint point = *it;
-      if (isFirst)
-        isFirst = false;
-      else
-        cmd << " ";
-      cmd << SgPointUtil::PointToString(point);
-    }
+    SgPoint point = *it;
+
+    if (isFirst)
+      isFirst = false;
+    else
+      cmd << " ";
+
+    cmd << SgPointUtil::PointToString(point);
   }
 }
 
@@ -693,6 +691,50 @@ void GoGtpEngine::CmdListMoves(GtpCommand& cmd)
     }
     node = node->LeftMostSon();
   }
+}
+
+/** List setup stones in no particular order. Setup stones are stones that
+    are placed before the first move, excluding handicap stones. The stones
+    are returned in a single line using the format
+    "color point, color point, ...". For instance: B A7, W Q14, B A8, W C3 */
+void GoGtpEngine::CmdListSetup(GtpCommand& cmd)
+{
+  cmd.CheckArgNone();
+
+  bool isFirst = true;
+  for (SgBWIterator itColor; itColor; ++itColor)
+  {
+    SgBlackWhite color = *itColor;
+
+    SgVector<SgPoint> setupPoints = GoGameUtil::GetSetupPoints(&m_game, color);
+    for (SgVectorIterator<SgPoint> itPoints(setupPoints); itPoints; ++itPoints)
+    {
+      SgPoint point = *itPoints;
+
+      if (isFirst)
+        isFirst = false;
+      else
+        cmd << ", ";
+
+      cmd << SgBW(color) << " ";
+      cmd << SgPointUtil::PointToString(point);
+    }
+  }
+}
+
+/** List the player who is set up to play first.
+    The result is either "B" or "W" if black or white are set up to play first.
+    The result is an empty string if no player is set up to play first. In that
+    case, since there is no explicit setup, the game logic determines the player
+    who plays first (e.g. in a normal game with no handicap, black plays first).
+ */
+void GoGtpEngine::CmdListSetupPlayer(GtpCommand& cmd)
+{
+  cmd.CheckArgNone();
+
+  int color = GoGameUtil::GetSetupPlayer(&m_game);
+  if (SgIsBlackWhite(color))
+    cmd << SgBW(color);
 }
 
 /** List stones on board.

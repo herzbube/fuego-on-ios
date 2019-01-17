@@ -16,6 +16,8 @@
 #include "SgSearchStatistics.h"
 #include "SgUtil.h"
 
+#include <map>
+
 using GoBoardUtil::PlayIfLegal;
 using SgUtil::ForceInRange;
 
@@ -465,6 +467,138 @@ bool GoGameUtil::GotoBeforeMove(GoGame* game, int moveNumber)
             game->GoInDirection(SgNode::NEXT);
     }
     return true;
+}
+
+SgVector<SgPoint> GoGameUtil::GetHandicapPoints(GoGame* game)
+{
+  SgVector<SgPoint> handicapPoints;
+
+  const SgNode* handicapNode = GoNodeUtil::GetHandicapNode(game->CurrentNode());
+  if (! handicapNode)
+    return handicapPoints;
+
+  const SgPropID addBlackPropID = SG_PROP_ADD_BLACK;
+  if (! handicapNode->HasProp(addBlackPropID))
+    return handicapPoints;
+
+  SgPropAddStone* propAddStone = static_cast<SgPropAddStone*>(handicapNode->Get(addBlackPropID));
+  return propAddStone->Value();
+}
+
+SgVector<SgPoint> GoGameUtil::GetSetupPoints(GoGame* game, SgBlackWhite color)
+{
+  // This map collects the information of all setup properties (AB, AW, AE).
+  // Points are filled into the map with the SgEmptyBlackWhite value that
+  // corresponds to the setup property that lists the point. If multiple setup
+  // properties list the same point, the SgEmptyBlackWhite value corresponds to
+  // the setup property that appears last. This way of collecting information
+  // matches what is stated in the SGF specification: "[...] Adding/clearing is
+  // done by 'overwriting' the given point [...] It doesn't matter what was
+  // there before.".
+  //
+  // Notes on handicap:
+  // - According to the SGF specs for the HA property: "[...] If there is a
+  //   handicap, the position should be set up with AB within the same node."
+  //   This means that the map will contain points occupied by handicap stones,
+  //   because handicap stones are specified using a setup property (AB).
+  //   This is a problem because the caller does not want handicap stones. The
+  //   problem is worked around later on in the second loop where the map is
+  //   post-processed: There all handicap stones are filtered out.
+  // - An SGF writer might first set up handicap stones with AB, then later on
+  //   "overwrite" one or more handicap stones with another setup property.
+  //   Although this could be considered unreasonable, there is nothing in the
+  //   SGF specification that forbids the scenario. The current implementation
+  //   therefore honors the SGF writer's instructions.
+  std::map<SgPoint, SgEmptyBlackWhite> occupiedPoints;
+
+  for (const SgNode* node = &game->Root();
+       node && ! node->HasProp(SG_PROP_MOVE);
+       node = node->NodeInDirection(SgNode::NEXT))  // only look along the main variation
+  {
+    // The following loop processes AB, AW and AE properties in a specific
+    // order. This order matters if the same point is listed in more than one
+    // property. For instance, if both an AB and an AW property exist in the
+    // same node, and point T19 is listed in both properties, then the outcome
+    // will change depending on whether we process AB or AW first.
+    //
+    // That being said, the SGF specification states that "[...] The order of
+    // properties in a node is not fixed. It may change every time the file is
+    // saved and may vary from application to application. Furthermore
+    // applications should not rely on the order of property values." This means
+    // that an SGF writer that conforms to the specification cannot rely on an
+    // SGF reader processing the properties in any specific order. If an SGF
+    // writer wants to repeatedly set up the same point it must therefore do
+    // so in different nodes.
+    for (SgEBWIterator itEBW; itEBW; ++itEBW)
+    {
+      SgEmptyBlackWhite ebw = *itEBW;
+
+      SgPropID addPropID;
+      if (ebw == SG_BLACK)
+        addPropID = SG_PROP_ADD_BLACK;
+      else if (ebw == SG_WHITE)
+        addPropID = SG_PROP_ADD_WHITE;
+      else
+        addPropID = SG_PROP_ADD_EMPTY;
+
+      if (! node->HasProp(addPropID))
+        continue;
+
+      SgPropAddStone* addProp = static_cast<SgPropAddStone*>(node->Get(addPropID));
+
+      SgVector<SgPoint> addStones = addProp->Value();
+      for (SgVectorIterator<SgPoint> itAdd(addStones); itAdd; ++itAdd)
+      {
+        SgPoint point = *itAdd;
+        occupiedPoints[point] = ebw;
+      }
+    }
+  }
+
+  SgVector<SgPoint> handicapPoints;
+  if (color == SG_BLACK)
+    handicapPoints = GoGameUtil::GetHandicapPoints(game);
+
+  SgVector<SgPoint> setupPoints;
+  for (std::map<SgPoint, SgEmptyBlackWhite>::const_iterator itOccupied = occupiedPoints.begin();
+       itOccupied != occupiedPoints.end();
+       ++itOccupied)
+  {
+    SgEmptyBlackWhite ebw = itOccupied->second;
+    if (ebw != color)
+      continue;
+
+    SgPoint point = itOccupied->first;
+    if (color == SG_BLACK && handicapPoints.Contains(point))
+      continue;
+
+    setupPoints.PushBack(point);
+  }
+
+  return setupPoints;
+}
+
+int GoGameUtil::GetSetupPlayer(GoGame* game)
+{
+  // We want a value that is != SG_BLACK and SG_WHITE. This implementation
+  // makes only one assumption about SG_BLACK and SG_WHITE: They must have
+  // consecutive numeric values - we know that this must be true, otherwise
+  // SgBWIterator would not work. Also see the BOOST_STATIC_ASSERT line in
+  // SgBlackWhite.h.
+  int color = SG_BLACK - 1;
+
+  for (const SgNode* node = &game->Root();
+       node && ! node->HasProp(SG_PROP_MOVE);
+       node = node->NodeInDirection(SgNode::NEXT))  // only look along the main variation
+  {
+    if (! node->HasProp(SG_PROP_PLAYER))
+      continue;
+
+    SgPropPlayer* propPlayer = static_cast<SgPropPlayer*>(node->Get(SG_PROP_PLAYER));
+    color = propPlayer->Value();
+  }
+
+  return color;
 }
 
 //----------------------------------------------------------------------------
