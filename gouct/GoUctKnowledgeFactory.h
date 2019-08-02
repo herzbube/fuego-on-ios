@@ -19,11 +19,7 @@ public:
 
     GoUctAdditiveKnowledge* Create(const GoBoard& bd);
 
-    GoUctAdditiveKnowledgeParamGreenpeep& GreenpeepParam();
-
 private:
-    GoUctAdditiveKnowledgeParamGreenpeep* m_greenpeepParam; 
-
     /** The param used for additive knowledge */
     const GoUctPlayoutPolicyParam& m_param;
 };
