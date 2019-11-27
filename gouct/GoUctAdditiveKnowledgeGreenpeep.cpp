@@ -185,7 +185,7 @@ ProcessPosition9(std::vector<SgUctMoveInfo>& moves)
         }
         else
             value = predictor[context];
-	    value /= NEUTRALPREDICTION_FLOAT;
+        value /= NEUTRALPREDICTION_FLOAT;
     }
 }
 

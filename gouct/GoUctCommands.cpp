@@ -474,12 +474,12 @@ void GoUctCommands::CmdFinalStatusList(GtpCommand& cmd)
     // per line
     for (GoBlockIterator it(m_bd); it; ++it)
     {
-        if ((getDead && deadPoints.Contains(*it))
+        if (   (getDead && deadPoints.Contains(*it))
             || (! getDead && ! deadPoints.Contains(*it)))
         {
             for (GoBoard::StoneIterator it2(m_bd, *it); it2; ++it2)
                 cmd << SgWritePoint(*it2) << ' ';
-                cmd << '\n';
+            cmd << '\n';
         }
     }
 }
