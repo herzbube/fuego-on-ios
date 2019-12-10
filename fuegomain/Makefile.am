@@ -1,4 +1,5 @@
 bin_PROGRAMS = fuego
+AM_CXXFLAGS = $(PTHREAD_CFLAGS)
 
 fuego_SOURCES = \
 FuegoMain.cpp \
@@ -20,7 +21,8 @@ fuego_LDADD = \
 $(BOOST_PROGRAM_OPTIONS_LIB) \
 $(BOOST_FILESYSTEM_LIB) \
 $(BOOST_SYSTEM_LIB) \
-$(BOOST_THREAD_LIB)
+$(BOOST_THREAD_LIB) \
+$(PTHREAD_LIBS)
 
 fuego_DEPENDENCIES = \
 ../gouct/libfuego_gouct.a \

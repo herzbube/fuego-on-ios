@@ -1,5 +1,6 @@
 TESTS = fuego_unittest
 check_PROGRAMS = $(TESTS)
+AM_CXXFLAGS = $(PTHREAD_CFLAGS)
 
 fuego_unittest_SOURCES = \
 ../features/test/FeBasicFeaturesTest.cpp \
@@ -97,7 +98,8 @@ fuego_unittest_LDADD = \
 $(BOOST_UNIT_TEST_FRAMEWORK_LIB) \
 $(BOOST_FILESYSTEM_LIB) \
 $(BOOST_SYSTEM_LIB) \
-$(BOOST_THREAD_LIB)
+$(BOOST_THREAD_LIB) \
+$(PTHREAD_LIBS)
 
 fuego_unittest_DEPENDENCIES = \
 ../gouct/libfuego_gouct.a \
