@@ -2,7 +2,7 @@
 
 The upstream [Fuego](http://fuego.sourceforge.net/) project is a collection of C++ libraries for developing software for the game of Go.
 
-The primary goal of the Fuego on iOS project is to provide a build of the Fuego source code for the iOS platform. The build is packaged into a framework bundle that can be easily integrated into any Xcode project. The build tries to remain as close as possible to the original upstream source code, with only such modifications as are necessary to overcome any difficulties in 1) building for the iOS platform, and in 2) building with a modern version of Boost.
+The primary goal of the Fuego on iOS project is to provide a build of the Fuego source code for the iOS platform. The build is packaged into an XCFramework bundle that can be easily integrated into any Xcode project. The build tries to remain as close as possible to the original upstream source code, with only such modifications as are necessary to overcome any difficulties in 1) building for the iOS platform, and in 2) building with a modern version of Boost.
 
 A secondary goal of the Fuego on iOS project is to provide an iOS build of Fuego that is suitable for integration into the [Little Go](https://github.com/herzbube/littlego) project.
 
@@ -60,7 +60,7 @@ These changes are separated into their own branch because the intent for the `fu
 
 You should use `master` if you are a Git user who wants to work with the unmodified Fuego source code, but cannot be bothered to fiddle with Subversion or `svn2git`. The `master` branch simply takes care of "wrapping" the upstream Subversion repository in a Git repository. Currently the disadvantage is that the `master` branch may not be up-to-date because it is manually synchronized.
 
-You should use `fuego-on-ios` if you want a ready-to-build Fuego + Boost environment. The build products are two framework bundles (Fuego + Boost) that you can simply add to your iOS application project.
+You should use `fuego-on-ios` if you want a ready-to-build Fuego + Boost environment. The build products are a regular framework bundle (Boost) and an XCFramework bundle (Fuego) that you can simply add to your iOS application project.
 
 You probably will not be interested in `fuego-for-littlego` at all, unless you want to study how the [Little Go](https://github.com/herzbube/littlego) app integrates Fuego.
 
@@ -90,23 +90,24 @@ These are the commands to first build Boost, then build Fuego:
 And these are the results of the build, to be integrated into other Xcode projects:
 
     boost/ios/framework/boost.framework
-    ios/framework/fuego-on-ios.framework
+    ios/framework/fuego-on-ios.xcframework
 
 The most important build settings are:
 
 * iOS SDK = The latest SDK known to your Xcode
 * Deployment target = 7.0
-* Architectures: armv7, armv7s, arm64 (iOS builds), i386, x86_64 (iPhone Simulator builds)
+* Boost architectures: armv7, armv7s, arm64 (iOS builds), i386, x86_64 (iPhone Simulator builds)
+* Fuego architectures: Default setting (`$(ARCHS_STANDARD)`)
 * C++ Language Dialect = GNU++98 (`-std=gnu++98`)
 * C++ Standard Library = libc++ (`-stdlib=libc++`)
 * Boost libraries: thread, filesystem, program_options, system, test, date_time (these are the libraries required by Fuego)
 
 Environment variables that you can set and export to override build settings (both for the Boost and the Fuego build scripts):
 
-* IPHONEOS_BASESDK_VERSION
-* IPHONEOS_DEPLOYMENT_TARGET
-* IPHONE_SIMULATOR_BASESDK_VERSION
-* IPHONE_SIMULATOR_DEPLOYMENT_TARGET
+* `PHONEOS_BASESDK_VERSION`
+* `IPHONEOS_DEPLOYMENT_TARGET`
+* `IPHONE_SIMULATOR_BASESDK_VERSION`
+* `IPHONE_SIMULATOR_DEPLOYMENT_TARGET`
 
 ## Repository maintenance
 
