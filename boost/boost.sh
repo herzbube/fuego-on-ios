@@ -18,6 +18,20 @@
 #    IPHONE_SIMULATOR_BASESDK_VERSION: iPhone Simulator SDK version (e.g.
 #                       5.1); if left undefined, the latest SDK known to
 #                       your Xcode will be used
+#    IPHONEOS_DEPLOYMENT_TARGET: iOS deployment target (e.g. 15.0);
+#                       if left undefined the default to use is 7.0;
+#                       no 32-bit architectures can be built if set to >10.
+#    IPHONE_SIMULATOR_DEPLOYMENT_TARGET: iOS simulator deployment target (e.g. 15.0);
+#                       if left undefined the default to use is 7.0;
+#                       no 32-bit architectures can be built if set to >10.
+#    IPHONE_SIMULATOR_ARCHITECTURE_TYPE: Designation of the device build architecture type;
+#                       if left undefined the default "arm" is used.
+#    IPHONE_ARCHITECTURES: Space separate list of device architectures to build;
+#                       if left undefined the default is "armv7 armv7s arm64".
+#    IPHONE_SIMULATOR_ARCHITECTURE_TYPE: Designation of the simulator build architecture type;
+#                       if left undefined the default "x86" is used.
+#    IPHONE_SIMULATOR_ARCHITECTURES: Space separate list of simulator architectures to build;
+#                       if left undefined the default is "i386 x86_64".
 #
 # Then go get the source tar.bz of the boost you want to build, shove it in the
 # same directory as this script, and run "./boost.sh". Grab a cuppa. And voila.
@@ -33,6 +47,10 @@ IPHONE_SIMULATOR_SDKPREFIX="iphonesimulator"
 : ${IPHONE_SIMULATOR_DEPLOYMENT_TARGET:=7.0}
 : ${XCODE_ROOT:=`xcode-select -print-path`}
 : ${EXTRA_CPPFLAGS:="-DBOOST_AC_USE_PTHREADS -DBOOST_SP_USE_PTHREADS -std=gnu++98 -stdlib=libc++ -fembed-bitcode"}
+: ${IPHONE_ARCHITECTURE_TYPE:="arm"}
+: ${IPHONE_ARCHITECTURES:="armv7 armv7s arm64"}
+: ${IPHONE_SIMULATOR_ARCHITECTURE_TYPE:="x86"}
+: ${IPHONE_SIMULATOR_ARCHITECTURES:="i386 x86_64"}
 
 # The EXTRA_CPPFLAGS definition works around a thread race issue in
 # shared_ptr. I encountered this historically and have not verified that
@@ -72,11 +90,11 @@ IPHONE_SIMULATOR_BJAM_TOOLSET="${IPHONE_SIMULATOR_BASESDK_VERSION}~iphonesim"
 IPHONEOS_CPPFLAGS="-miphoneos-version-min=$IPHONEOS_DEPLOYMENT_TARGET $EXTRA_CPPFLAGS"
 IPHONE_SIMULATOR_CPPFLAGS="-mios-simulator-version-min=$IPHONE_SIMULATOR_DEPLOYMENT_TARGET $EXTRA_CPPFLAGS"
 
-ARM_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
+IPHONE_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
 SIM_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
-ARM_AR="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find ar)"
+IPHONE_AR="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find ar)"
 SIM_AR="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find ar)"
-ARM_COMPILER="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find $COMPILER)"
+IPHONE_COMPILER="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find $COMPILER)"
 SIM_COMPILER="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find $COMPILER)"
 
 ARM_COMBINED_LIB=$IOSBUILDDIR/lib_boost_arm.a
@@ -133,16 +151,27 @@ updateBoost()
 {
     echo Updating boost into $BOOST_SRC...
 
-	cat >> $BOOST_SRC/project-config.jam <<EOF
+    IPHONE_COMPILER_ARCHITECTURES_FLAGS=""
+    for IPHONE_ARCHITECTURE in $IPHONE_ARCHITECTURES; do
+      IPHONE_COMPILER_ARCHITECTURES_FLAGS="$IPHONE_COMPILER_ARCHITECTURES_FLAGS -arch $IPHONE_ARCHITECTURE"
+    done
+    cat >> $BOOST_SRC/project-config.jam <<EOF
 using darwin : $IPHONEOS_BJAM_TOOLSET
-   : $ARM_COMPILER -arch armv7 -arch armv7s -arch arm64 -fvisibility=hidden -fvisibility-inlines-hidden $IPHONEOS_CPPFLAGS
+   : $IPHONE_COMPILER $IPHONE_COMPILER_ARCHITECTURES_FLAGS -fvisibility=hidden -fvisibility-inlines-hidden $IPHONEOS_CPPFLAGS
    : <striper> <root>$IPHONEOS_PLATFORMDIR/Developer
-   : <architecture>arm <target-os>iphone
+   : <architecture>$IPHONE_ARCHITECTURE_TYPE <target-os>iphone
    ;
+EOF
+
+    IPHONE_SIMULATOR_COMPILER_ARCHITECTURES_FLAGS=""
+    for IPHONE_SIMULATOR_ARCHITECTURE in $IPHONE_SIMULATOR_ARCHITECTURES; do
+      IPHONE_SIMULATOR_COMPILER_ARCHITECTURES_FLAGS="$IPHONE_SIMULATOR_COMPILER_ARCHITECTURES_FLAGS -arch $IPHONE_SIMULATOR_ARCHITECTURE"
+    done
+    cat >> $BOOST_SRC/project-config.jam <<EOF
 using darwin : $IPHONE_SIMULATOR_BJAM_TOOLSET
-   : $SIM_COMPILER -arch i386 -arch x86_64 -fvisibility=hidden -fvisibility-inlines-hidden $IPHONE_SIMULATOR_CPPFLAGS
+   : $SIM_COMPILER $IPHONE_SIMULATOR_COMPILER_ARCHITECTURES_FLAGS -fvisibility=hidden -fvisibility-inlines-hidden $IPHONE_SIMULATOR_CPPFLAGS
    : <striper> <root>$IPHONE_SIMULATOR_PLATFORMDIR/Developer
-   : <architecture>x86 <target-os>iphone
+   : <architecture>$IPHONE_SIMULATOR_ARCHITECTURE_TYPE <target-os>iphone
    ;
 EOF
 
@@ -191,21 +220,33 @@ bootstrapBoost()
 buildBoostForiPhoneOS()
 {
     cd $BOOST_SRC
-    
-	# Install this one so we can copy the includes for the frameworks...
-    ./tools/build/src/engine/bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=arm target-os=iphone macosx-version=iphone-${IPHONEOS_BASESDK_VERSION} define=_LITTLE_ENDIAN link=static stage
-    ./tools/build/src/engine/bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=arm target-os=iphone macosx-version=iphone-${IPHONEOS_BASESDK_VERSION} define=_LITTLE_ENDIAN link=static install
+
+    # Install this one so we can copy the includes for the frameworks...
+    ./tools/build/src/engine/bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=$IPHONE_ARCHITECTURE_TYPE target-os=iphone macosx-version=iphone-${IPHONEOS_BASESDK_VERSION} define=_LITTLE_ENDIAN link=static stage
+    ./tools/build/src/engine/bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=$IPHONE_ARCHITECTURE_TYPE target-os=iphone macosx-version=iphone-${IPHONEOS_BASESDK_VERSION} define=_LITTLE_ENDIAN link=static install
     doneSection
 
-    ./tools/build/src/engine/bjam -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage --toolset=darwin-$IPHONE_SIMULATOR_BJAM_TOOLSET architecture=x86 target-os=iphone macosx-version=iphonesim-${IPHONE_SIMULATOR_BASESDK_VERSION} link=static stage
-	doneSection
+    ./tools/build/src/engine/bjam -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage --toolset=darwin-$IPHONE_SIMULATOR_BJAM_TOOLSET architecture=$IPHONE_SIMULATOR_ARCHITECTURE_TYPE target-os=iphone macosx-version=iphonesim-${IPHONE_SIMULATOR_BASESDK_VERSION} link=static stage
+    doneSection
 }
 
 #===============================================================================
 
 scrunchAllLibsTogetherInOneLibPerPlatform()
 {
-	cd $SRCDIR
+    cd $SRCDIR
+
+    # lipo -thin aborts with an error if it encounters a non-fat file.
+    # Therefore we need special handling if a build was requested for only
+    # one architecture.
+    unset SINGLE_IPHONE_ARCHITECTURE
+    if test "$IPHONE_ARCHITECTURES" = "${IPHONE_ARCHITECTURES/ //}"; then
+      SINGLE_IPHONE_ARCHITECTURE=1
+    fi
+    unset SINGLE_IPHONE_SIMULATOR_ARCHITECTURE
+    if test "$IPHONE_SIMULATOR_ARCHITECTURES" = "${IPHONE_SIMULATOR_ARCHITECTURES/ //}"; then
+      SINGLE_IPHONE_SIMULATOR_ARCHITECTURE=1
+    fi
 
     echo Splitting all existing fat binaries...
     for NAME in $BOOST_LIBS; do
@@ -216,38 +257,38 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
 
         # Must have separate obj folders for each library, because separate libraries may
         # contain object files with the same name
-        mkdir -p $IOSBUILDDIR/armv7/$OBJ_DIRNAME
-        mkdir -p $IOSBUILDDIR/armv7s/$OBJ_DIRNAME
-        mkdir -p $IOSBUILDDIR/arm64/$OBJ_DIRNAME
-        mkdir -p $IOSBUILDDIR/i386/$OBJ_DIRNAME
-        mkdir -p $IOSBUILDDIR/x86_64/$OBJ_DIRNAME
 
-        $ARM_LIPO "iphone-build/stage/lib/$LIB_FILENAME" -thin armv7 -o $IOSBUILDDIR/armv7/$LIB_FILENAME
-        $ARM_LIPO "iphone-build/stage/lib/$LIB_FILENAME" -thin armv7s -o $IOSBUILDDIR/armv7s/$LIB_FILENAME
-        $ARM_LIPO "iphone-build/stage/lib/$LIB_FILENAME" -thin arm64 -o $IOSBUILDDIR/arm64/$LIB_FILENAME
+        for ARCHITECTURE in $IPHONE_ARCHITECTURES; do
+          mkdir -p $IOSBUILDDIR/$ARCHITECTURE/$OBJ_DIRNAME
+          if test -z "$SINGLE_IPHONE_ARCHITECTURE"; then
+            $IPHONE_LIPO "iphone-build/stage/lib/$LIB_FILENAME" -thin $ARCHITECTURE -o $IOSBUILDDIR/$ARCHITECTURE/$LIB_FILENAME
+          else
+            cp "iphone-build/stage/lib/$LIB_FILENAME" $IOSBUILDDIR/$ARCHITECTURE/$LIB_FILENAME
+          fi
+          (cd $IOSBUILDDIR/$ARCHITECTURE/$OBJ_DIRNAME; $IPHONE_AR -x ../$LIB_FILENAME);
+        done
 
-        $SIM_LIPO "iphonesim-build/stage/lib/$LIB_FILENAME" -thin i386 -o $IOSBUILDDIR/i386/$LIB_FILENAME
-        $SIM_LIPO "iphonesim-build/stage/lib/$LIB_FILENAME" -thin x86_64 -o $IOSBUILDDIR/x86_64/$LIB_FILENAME
-
-        (cd $IOSBUILDDIR/armv7/$OBJ_DIRNAME; ar -x ../$LIB_FILENAME );
-        (cd $IOSBUILDDIR/armv7s/$OBJ_DIRNAME; ar -x ../$LIB_FILENAME );
-        (cd $IOSBUILDDIR/arm64/$OBJ_DIRNAME; ar -x ../$LIB_FILENAME );
-        (cd $IOSBUILDDIR/i386/$OBJ_DIRNAME; ar -x ../$LIB_FILENAME );
-        (cd $IOSBUILDDIR/x86_64/$OBJ_DIRNAME; ar -x ../$LIB_FILENAME );
-    done
+        for ARCHITECTURE in $IPHONE_SIMULATOR_ARCHITECTURES; do
+          mkdir -p $IOSBUILDDIR/$ARCHITECTURE/$OBJ_DIRNAME
+          if test -z "$SINGLE_IPHONE_SIMULATOR_ARCHITECTURE"; then
+            $SIM_LIPO "iphonesim-build/stage/lib/$LIB_FILENAME" -thin $ARCHITECTURE -o $IOSBUILDDIR/$ARCHITECTURE/$LIB_FILENAME
+          else
+            cp "iphonesim-build/stage/lib/$LIB_FILENAME" $IOSBUILDDIR/$ARCHITECTURE/$LIB_FILENAME
+          fi
+          (cd $IOSBUILDDIR/$ARCHITECTURE/$OBJ_DIRNAME; $SIM_AR -x ../$LIB_FILENAME);
+        done
+  done
 
     echo "Linking each architecture into an uberlib => libboost.a"
     rm -f $IOSBUILDDIR/*/libboost.a
-    echo ...armv7
-    (cd $IOSBUILDDIR/armv7; $ARM_AR crus libboost.a obj_*/*.o; )
-    echo ...armv7s
-    (cd $IOSBUILDDIR/armv7s; $ARM_AR crus libboost.a obj_*/*.o; )
-    echo ...arm64
-    (cd $IOSBUILDDIR/arm64; $ARM_AR crus libboost.a obj_*/*.o; )
-    echo ...i386
-    (cd $IOSBUILDDIR/i386;  $SIM_AR crus libboost.a obj_*/*.o; )
-    echo ...x86_64
-    (cd $IOSBUILDDIR/x86_64;  $SIM_AR crus libboost.a obj_*/*.o; )
+    for ARCHITECTURE in $IPHONE_ARCHITECTURES; do
+      echo ...$ARCHITECTURE
+      (cd $IOSBUILDDIR/$ARCHITECTURE; $IPHONE_AR crus libboost.a obj_*/*.o; )
+    done
+    for ARCHITECTURE in $IPHONE_SIMULATOR_ARCHITECTURES; do
+      echo ...$ARCHITECTURE
+      (cd $IOSBUILDDIR/$ARCHITECTURE; $SIM_AR crus libboost.a obj_*/*.o; )
+    done
 }
 
 #===============================================================================
@@ -287,7 +328,7 @@ buildFramework()
     FRAMEWORK_INSTALL_NAME=$FRAMEWORK_BUNDLE/Versions/$FRAMEWORK_VERSION/$FRAMEWORK_NAME
 
     echo "Lipoing library into $FRAMEWORK_INSTALL_NAME..."
-    $ARM_LIPO -create $BUILDDIR/*/libboost.a -o "$FRAMEWORK_INSTALL_NAME" || abort "Lipo $1 failed"
+    $IPHONE_LIPO -create $BUILDDIR/*/libboost.a -o "$FRAMEWORK_INSTALL_NAME" || abort "Lipo $1 failed"
 
     echo "Framework: Copying includes..."
     cp -r $PREFIXDIR/include/boost/*  $FRAMEWORK_BUNDLE/Headers/
