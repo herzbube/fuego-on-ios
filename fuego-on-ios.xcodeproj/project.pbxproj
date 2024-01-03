@@ -12,7 +12,7 @@
 		CDA067F41870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDA067F21870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.cpp */; };
 		CDA067F51870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.h in Headers */ = {isa = PBXBuildFile; fileRef = CDA067F31870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.h */; };
 		CDEFA2F217FA151100A99F64 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDEFA2F117FA151100A99F64 /* Foundation.framework */; };
-		CDEFA30017FA15C200A99F64 /* boost.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDEFA2FF17FA15C200A99F64 /* boost.framework */; };
+		CDEFA30017FA15C200A99F64 /* boost.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDEFA2FF17FA15C200A99F64 /* boost.xcframework */; };
 		CDEFA47F17FA173400A99F64 /* FuegoMainEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDEFA30917FA173300A99F64 /* FuegoMainEngine.cpp */; };
 		CDEFA48017FA173400A99F64 /* FuegoMainUtil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDEFA30B17FA173300A99F64 /* FuegoMainUtil.cpp */; };
 		CDEFA48117FA173400A99F64 /* GoAutoBook.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDEFA31017FA173300A99F64 /* GoAutoBook.cpp */; };
@@ -319,7 +319,7 @@
 		CDA067F31870D64A000805B5 /* GoUctAdditiveKnowledgeMultiple.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GoUctAdditiveKnowledgeMultiple.h; sourceTree = "<group>"; };
 		CDEFA2EE17FA151100A99F64 /* libfuego-on-ios.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libfuego-on-ios.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDEFA2F117FA151100A99F64 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
-		CDEFA2FF17FA15C200A99F64 /* boost.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = boost.framework; path = boost/ios/framework/boost.framework; sourceTree = "<group>"; };
+		CDEFA2FF17FA15C200A99F64 /* boost.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = boost.xcframework; path = boost/ios/framework/boost.xcframework; sourceTree = "<group>"; };
 		CDEFA30817FA173300A99F64 /* FuegoMain.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FuegoMain.cpp; sourceTree = "<group>"; };
 		CDEFA30917FA173300A99F64 /* FuegoMainEngine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FuegoMainEngine.cpp; sourceTree = "<group>"; };
 		CDEFA30A17FA173300A99F64 /* FuegoMainEngine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FuegoMainEngine.h; sourceTree = "<group>"; };
@@ -619,7 +619,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CDEFA30017FA15C200A99F64 /* boost.framework in Frameworks */,
+				CDEFA30017FA15C200A99F64 /* boost.xcframework in Frameworks */,
 				CDEFA2F217FA151100A99F64 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -636,7 +636,7 @@
 				CDEFA3AB17FA173300A99F64 /* gtpengine */,
 				CDEFA3B517FA173300A99F64 /* simpleplayers */,
 				CDEFA3D317FA173400A99F64 /* smartgame */,
-				CDEFA2FF17FA15C200A99F64 /* boost.framework */,
+				CDEFA2FF17FA15C200A99F64 /* boost.xcframework */,
 				CDEFA2F017FA151100A99F64 /* Frameworks */,
 				CDEFA2EF17FA151100A99F64 /* Products */,
 			);

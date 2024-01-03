@@ -5,9 +5,9 @@
 # Licence:   Please feel free to use this, with attribution
 #===============================================================================
 #
-# Builds a Boost framework for the iPhone.
+# Builds a Boost XCFramework for the iPhone.
 # Creates a set of universal libraries that can be used on an iPhone and in the
-# iPhone simulator. Then creates a pseudo-framework to make using boost in Xcode
+# iPhone simulator. Then creates an XCFramework to make using boost in Xcode
 # less painful.
 #
 # To configure the script, define:
@@ -63,7 +63,7 @@ IPHONE_SIMULATOR_SDKPREFIX="iphonesimulator"
 : ${SRCDIR:=`pwd`}
 : ${IOSBUILDDIR:=`pwd`/ios/build}
 : ${PREFIXDIR:=`pwd`/ios/prefix}
-: ${IOSFRAMEWORKDIR:=`pwd`/ios/framework}
+: ${FRAMEWORKDIR:=`pwd`/ios/framework}
 : ${COMPILER:="clang"}
 
 BOOST_SRC=$SRCDIR/modular-boost
@@ -94,11 +94,26 @@ IPHONE_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
 SIM_LIPO="$(xcrun -sdk $IPHONEOS_SDKNAME -find lipo)"
 IPHONE_AR="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find ar)"
 SIM_AR="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find ar)"
+IPHONE_LIBTOOL="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find libtool)"
+IPHONE_SIMULATOR_LIBTOOL="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find libtool)"
 IPHONE_COMPILER="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find $COMPILER)"
 SIM_COMPILER="$(xcrun -sdk $IPHONE_SIMULATOR_SDKNAME -find $COMPILER)"
 
-ARM_COMBINED_LIB=$IOSBUILDDIR/lib_boost_arm.a
-SIM_COMBINED_LIB=$IOSBUILDDIR/lib_boost_x86.a
+UNIVERSAL_LIBRARY_NAME=libboost.a
+# The framework name determines the prefix that consumers must use in their
+# include statements, e.g. framework name "boost" results in this statement:
+#   #include <boost/someheaderfile.h>
+FRAMEWORK_NAME=boost
+
+IPHONE_BUILD_DIR=iphone-build
+IPHONE_UNIVERSAL_LIBRARY_PATH=$IOSBUILDDIR/$IPHONE_BUILD_DIR/$UNIVERSAL_LIBRARY_NAME
+IPHONE_FRAMEWORK_BUNDLE=$IOSBUILDDIR/$IPHONE_BUILD_DIR/$FRAMEWORK_NAME.framework
+
+IPHONE_SIMULATOR_BUILD_DIR=iphonesim-build
+IPHONE_SIMULATOR_UNIVERSAL_LIBRARY_PATH=$IOSBUILDDIR/$IPHONE_SIMULATOR_BUILD_DIR/$UNIVERSAL_LIBRARY_NAME
+IPHONE_SIMULATOR_FRAMEWORK_BUNDLE=$IOSBUILDDIR/$IPHONE_SIMULATOR_BUILD_DIR/$FRAMEWORK_NAME.framework
+
+XCFRAMEWORK_BUNDLE=$FRAMEWORKDIR/$FRAMEWORK_NAME.xcframework
 
 #===============================================================================
 
@@ -127,11 +142,11 @@ doneSection()
 cleanEverythingReadyToStart()
 {
     echo Cleaning everything before we start to build...
-    rm -rf iphone-build iphonesim-build
+    rm -rf $IPHONE_BUILD_DIR $IPHONE_SIMULATOR_BUILD_DIR
     rm -rf $IOSBUILDDIR
     rm -rf $PREFIXDIR
-    rm -rf $IOSFRAMEWORKDIR/$FRAMEWORK_NAME.framework
-    
+    rm -rf $XCFRAMEWORK_BUNDLE
+
     # No need to git fetch, we expect that the submodule is up-to-date
 
     pushd $BOOST_SRC >/dev/null
@@ -222,17 +237,17 @@ buildBoostForiPhoneOS()
     cd $BOOST_SRC
 
     # Install this one so we can copy the includes for the frameworks...
-    ./tools/build/src/engine/bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=$IPHONE_ARCHITECTURE_TYPE target-os=iphone macosx-version=iphone-${IPHONEOS_BASESDK_VERSION} define=_LITTLE_ENDIAN link=static stage
-    ./tools/build/src/engine/bjam -j16 --build-dir=../iphone-build --stagedir=../iphone-build/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=$IPHONE_ARCHITECTURE_TYPE target-os=iphone macosx-version=iphone-${IPHONEOS_BASESDK_VERSION} define=_LITTLE_ENDIAN link=static install
+    ./tools/build/src/engine/bjam -j16 --build-dir=../$IPHONE_BUILD_DIR --stagedir=../$IPHONE_BUILD_DIR/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=$IPHONE_ARCHITECTURE_TYPE target-os=iphone macosx-version=iphone-${IPHONEOS_BASESDK_VERSION} define=_LITTLE_ENDIAN link=static stage
+    ./tools/build/src/engine/bjam -j16 --build-dir=../$IPHONE_BUILD_DIR --stagedir=../$IPHONE_BUILD_DIR/stage --prefix=$PREFIXDIR toolset=darwin-$IPHONEOS_BJAM_TOOLSET architecture=$IPHONE_ARCHITECTURE_TYPE target-os=iphone macosx-version=iphone-${IPHONEOS_BASESDK_VERSION} define=_LITTLE_ENDIAN link=static install
     doneSection
 
-    ./tools/build/src/engine/bjam -j16 --build-dir=../iphonesim-build --stagedir=../iphonesim-build/stage --toolset=darwin-$IPHONE_SIMULATOR_BJAM_TOOLSET architecture=$IPHONE_SIMULATOR_ARCHITECTURE_TYPE target-os=iphone macosx-version=iphonesim-${IPHONE_SIMULATOR_BASESDK_VERSION} link=static stage
+    ./tools/build/src/engine/bjam -j16 --build-dir=../$IPHONE_SIMULATOR_BUILD_DIR --stagedir=../$IPHONE_SIMULATOR_BUILD_DIR/stage --toolset=darwin-$IPHONE_SIMULATOR_BJAM_TOOLSET architecture=$IPHONE_SIMULATOR_ARCHITECTURE_TYPE target-os=iphone macosx-version=iphonesim-${IPHONE_SIMULATOR_BASESDK_VERSION} link=static stage
     doneSection
 }
 
 #===============================================================================
 
-scrunchAllLibsTogetherInOneLibPerPlatform()
+scrunchAllLibsTogetherInOneLibPerPlatformPerArchitecture()
 {
     cd $SRCDIR
 
@@ -255,58 +270,87 @@ scrunchAllLibsTogetherInOneLibPerPlatform()
 
         echo Decomposing $LIB_FILENAME...
 
-        # Must have separate obj folders for each library, because separate libraries may
-        # contain object files with the same name
+        # Must have separate obj folders for each library, because separate
+        # libraries may contain object files with the same name. Also must have
+        # separate iOS/simulator folders because the same architecture may be
+        # used to build both platforms.
 
         for ARCHITECTURE in $IPHONE_ARCHITECTURES; do
-          mkdir -p $IOSBUILDDIR/$ARCHITECTURE/$OBJ_DIRNAME
+          mkdir -p $IOSBUILDDIR/$IPHONE_BUILD_DIR/$ARCHITECTURE/$OBJ_DIRNAME
           if test -z "$SINGLE_IPHONE_ARCHITECTURE"; then
-            $IPHONE_LIPO "iphone-build/stage/lib/$LIB_FILENAME" -thin $ARCHITECTURE -o $IOSBUILDDIR/$ARCHITECTURE/$LIB_FILENAME
+            $IPHONE_LIPO "$IPHONE_BUILD_DIR/stage/lib/$LIB_FILENAME" -thin $ARCHITECTURE -o $IOSBUILDDIR/$IPHONE_BUILD_DIR/$ARCHITECTURE/$LIB_FILENAME
           else
-            cp "iphone-build/stage/lib/$LIB_FILENAME" $IOSBUILDDIR/$ARCHITECTURE/$LIB_FILENAME
+            cp "$IPHONE_BUILD_DIR/stage/lib/$LIB_FILENAME" $IOSBUILDDIR/$IPHONE_BUILD_DIR/$ARCHITECTURE/$LIB_FILENAME
           fi
-          (cd $IOSBUILDDIR/$ARCHITECTURE/$OBJ_DIRNAME; $IPHONE_AR -x ../$LIB_FILENAME);
+          (cd $IOSBUILDDIR/$IPHONE_BUILD_DIR/$ARCHITECTURE/$OBJ_DIRNAME; $IPHONE_AR -x ../$LIB_FILENAME);
         done
 
         for ARCHITECTURE in $IPHONE_SIMULATOR_ARCHITECTURES; do
-          mkdir -p $IOSBUILDDIR/$ARCHITECTURE/$OBJ_DIRNAME
+          mkdir -p $IOSBUILDDIR/$IPHONE_SIMULATOR_BUILD_DIR/$ARCHITECTURE/$OBJ_DIRNAME
           if test -z "$SINGLE_IPHONE_SIMULATOR_ARCHITECTURE"; then
-            $SIM_LIPO "iphonesim-build/stage/lib/$LIB_FILENAME" -thin $ARCHITECTURE -o $IOSBUILDDIR/$ARCHITECTURE/$LIB_FILENAME
+            $SIM_LIPO "$IPHONE_SIMULATOR_BUILD_DIR/stage/lib/$LIB_FILENAME" -thin $ARCHITECTURE -o $IOSBUILDDIR/$IPHONE_SIMULATOR_BUILD_DIR/$ARCHITECTURE/$LIB_FILENAME
           else
-            cp "iphonesim-build/stage/lib/$LIB_FILENAME" $IOSBUILDDIR/$ARCHITECTURE/$LIB_FILENAME
+            cp "$IPHONE_SIMULATOR_BUILD_DIR/stage/lib/$LIB_FILENAME" $IOSBUILDDIR/$IPHONE_SIMULATOR_BUILD_DIR/$ARCHITECTURE/$LIB_FILENAME
           fi
-          (cd $IOSBUILDDIR/$ARCHITECTURE/$OBJ_DIRNAME; $SIM_AR -x ../$LIB_FILENAME);
+          (cd $IOSBUILDDIR/$IPHONE_SIMULATOR_BUILD_DIR/$ARCHITECTURE/$OBJ_DIRNAME; $SIM_AR -x ../$LIB_FILENAME);
         done
-  done
+    done
 
-    echo "Linking each architecture into an uberlib => libboost.a"
-    rm -f $IOSBUILDDIR/*/libboost.a
-    for ARCHITECTURE in $IPHONE_ARCHITECTURES; do
-      echo ...$ARCHITECTURE
-      (cd $IOSBUILDDIR/$ARCHITECTURE; $IPHONE_AR crus libboost.a obj_*/*.o; )
-    done
-    for ARCHITECTURE in $IPHONE_SIMULATOR_ARCHITECTURES; do
-      echo ...$ARCHITECTURE
-      (cd $IOSBUILDDIR/$ARCHITECTURE; $SIM_AR crus libboost.a obj_*/*.o; )
-    done
+    # The original solution used "ar crus" to create the library for the first
+    # architecture, then incrementally add to the library for each subsequent
+    # architecture. In certain scenarios, the "ar" utility apparently is not
+    # capable of creating archives with mixed CPU types. For instance, when
+    # architectures arm64 and x86_64 are built for the simulator, the first
+    # invocation of "ar" will create the library with the arm64 object files,
+    # but the second invocation of "ar" will silently do nothing, i.e. it will
+    # ***NOT*** add the x86_64 object files to the library as expected. Only
+    # when "ar" is invoked with the object files of all architectures does the
+    # utility print warning/error messages and exit with exit code 1. The
+    # messages are
+    #   ranlib: archive member: <foo> cputype (16777223) does not match previous archive members cputype (16777228) (all members must match)
+    #   [...] repeated for each object file of the architectures beyond the first architecture
+    #   ranlib: archive library: <foo> will be fat and ar(1) will not be able to operate on it
+    #   ar: internal ranlib command failed
+    #
+    # The weird thing is that for years "ar crus" worked perfectly to create a
+    # universal library with architectures "armv7 armv7s arm64 i386 x86_64"
+    # (arm architectures from iOS build, x86 architectures from simulator
+    # build). The problem occurred only after switching to Xcode 15 and trying
+    # to build the universal library for "arm64 x86_64" (arm64 either from iOS
+    # or simulator build, x86_64 always from simulator build). It is not clear
+    # whether the problem is due to new behaviour in ar/ranlib from Xcode 15, or
+    # whether the problem is tied to the combination of exactly the two
+    # architectures arm64 and x86_64.
+    #
+    # In any case, we now use libtool instead of ar, because libtool does not
+    # suffer from the issue. Because libtool does not support adding to an
+    # already existing library, the incremental approach was ditched and the
+    # library is now created in a single libtool invocation.
+    echo "Linking each device build architecture into an universal library => $UNIVERSAL_LIBRARY_NAME"
+    rm -f $IPHONE_UNIVERSAL_LIBRARY_PATH
+    (cd $IOSBUILDDIR/$IPHONE_BUILD_DIR; $IPHONE_LIBTOOL -static -o $IPHONE_UNIVERSAL_LIBRARY_PATH */obj_*/*.o;)
+
+    echo "Linking each simulator build architecture into an universal library => $UNIVERSAL_LIBRARY_NAME"
+    rm -f $IPHONE_SIMULATOR_UNIVERSAL_LIBRARY_PATH
+    (cd $IOSBUILDDIR/$IPHONE_SIMULATOR_BUILD_DIR; $IPHONE_SIMULATOR_LIBTOOL -static -o $IPHONE_SIMULATOR_UNIVERSAL_LIBRARY_PATH */obj_*/*.o;)
+
+    doneSection
 }
 
 #===============================================================================
 buildFramework()
 {
-	: ${1:?}
-	FRAMEWORKDIR=$1
-	BUILDDIR=$2
+    : ${1:?}
+    FRAMEWORK_BUNDLE=$1
+    UNIVERSAL_LIBRARY_PATH=$2
 
-	VERSION_TYPE=Alpha
-	FRAMEWORK_NAME=boost
-	FRAMEWORK_VERSION=A
+    VERSION_TYPE=Alpha
+    FRAMEWORK_VERSION=A
 
-	FRAMEWORK_CURRENT_VERSION=$BOOST_VERSION
-	FRAMEWORK_COMPATIBILITY_VERSION=$BOOST_VERSION
+    FRAMEWORK_CURRENT_VERSION=$BOOST_VERSION
+    FRAMEWORK_COMPATIBILITY_VERSION=$BOOST_VERSION
 
-    FRAMEWORK_BUNDLE=$FRAMEWORKDIR/$FRAMEWORK_NAME.framework
-    echo "Framework: Building $FRAMEWORK_BUNDLE from $BUILDDIR..."
+    echo "Framework: Building $(basename $FRAMEWORK_BUNDLE) from $(basename $UNIVERSAL_LIBRARY_PATH)..."
 
     rm -rf $FRAMEWORK_BUNDLE
 
@@ -325,10 +369,8 @@ buildFramework()
     ln -s Versions/Current/Documentation   $FRAMEWORK_BUNDLE/Documentation
     ln -s Versions/Current/$FRAMEWORK_NAME $FRAMEWORK_BUNDLE/$FRAMEWORK_NAME
 
-    FRAMEWORK_INSTALL_NAME=$FRAMEWORK_BUNDLE/Versions/$FRAMEWORK_VERSION/$FRAMEWORK_NAME
-
-    echo "Lipoing library into $FRAMEWORK_INSTALL_NAME..."
-    $IPHONE_LIPO -create $BUILDDIR/*/libboost.a -o "$FRAMEWORK_INSTALL_NAME" || abort "Lipo $1 failed"
+    echo "Framework: Copying universal library..."
+    cp $UNIVERSAL_LIBRARY_PATH "$FRAMEWORK_BUNDLE/Versions/$FRAMEWORK_VERSION/$FRAMEWORK_NAME"
 
     echo "Framework: Copying includes..."
     cp -r $PREFIXDIR/include/boost/*  $FRAMEWORK_BUNDLE/Headers/
@@ -360,6 +402,19 @@ EOF
 }
 
 #===============================================================================
+buildXcFramework()
+{
+    echo "Building XCFramework..."
+
+    xcodebuild -create-xcframework \
+               -framework $IPHONE_FRAMEWORK_BUNDLE \
+               -framework $IPHONE_SIMULATOR_FRAMEWORK_BUNDLE \
+               -output $XCFRAMEWORK_BUNDLE
+
+    doneSection
+}
+
+#===============================================================================
 # Execution starts here
 #===============================================================================
 
@@ -373,7 +428,7 @@ echo "BOOST_LIBS:        $BOOST_LIBS"
 echo "BOOST_SRC:         $BOOST_SRC"
 echo "IOSBUILDDIR:       $IOSBUILDDIR"
 echo "PREFIXDIR:         $PREFIXDIR"
-echo "IOSFRAMEWORKDIR:   $IOSFRAMEWORKDIR"
+echo "FRAMEWORKDIR:      $FRAMEWORKDIR"
 echo "IPHONEOS_BASESDK_VERSION: $IPHONEOS_BASESDK_VERSION"
 echo "IPHONE_SIMULATOR_BASESDK_VERSION: $IPHONE_SIMULATOR_BASESDK_VERSION"
 echo "XCODE_ROOT:        $XCODE_ROOT"
@@ -384,11 +439,13 @@ bootstrapBoost
 updateBoost
 patchBoost
 buildBoostForiPhoneOS
-scrunchAllLibsTogetherInOneLibPerPlatform
-buildFramework $IOSFRAMEWORKDIR $IOSBUILDDIR
+scrunchAllLibsTogetherInOneLibPerPlatformPerArchitecture
+buildFramework $IPHONE_FRAMEWORK_BUNDLE $IPHONE_UNIVERSAL_LIBRARY_PATH
+buildFramework $IPHONE_SIMULATOR_FRAMEWORK_BUNDLE $IPHONE_SIMULATOR_UNIVERSAL_LIBRARY_PATH
+buildXcFramework
 
 echo "Completed successfully"
-echo "The framework is located here: $IOSFRAMEWORKDIR/$FRAMEWORK_NAME.framework"
+echo "The framework is located here: $XCFRAMEWORK_BUNDLE"
 echo "Enjoy."
 
 #===============================================================================
