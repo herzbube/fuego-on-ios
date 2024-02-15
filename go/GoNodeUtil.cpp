@@ -46,13 +46,35 @@ GoKomi GoNodeUtil::GetKomi(const SgNode* node)
 
 int GoNodeUtil::GetHandicap(const SgNode* node)
 {
+  node = GetHandicapNode(node);
+  if (node)
+    return node->GetIntProp(SG_PROP_HANDICAP);
+  else
+    return 0;
+}
+
+const SgNode* GoNodeUtil::GetHandicapNode(const SgNode* node)
+{
+  while (node != 0)
+  {
+    if (node->HasProp(SG_PROP_HANDICAP))
+      return node;
+    node = node->Father();
+  }
+  return 0;
+}
+
+int GoNodeUtil::GetBoardSize(const SgNode* node)
+{
     while (node != 0)
     {
-        if (node->HasProp(SG_PROP_HANDICAP))
-            return node->GetIntProp(SG_PROP_HANDICAP);
+        SgPropInt* boardSizeProp =
+            static_cast<SgPropInt*>(node->Get(SG_PROP_SIZE));
+        if (boardSizeProp)
+          return boardSizeProp->Value();
         node = node->Father();
     }
-    return 0;
+    return GO_DEFAULT_SIZE;
 }
 
 //----------------------------------------------------------------------------

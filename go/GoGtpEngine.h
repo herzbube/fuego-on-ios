@@ -60,6 +60,8 @@ public:
         - @link CmdGenMoveCleanup() @c kgs-genmove_cleanup @endlink
         - @link CmdKgsTimeSettings() @c kgs-time_settings @endlink
         - @link CmdKomi() @c komi @endlink
+        - @link CmdListHandicap() @c list_handicap @endlink
+        - @link CmdListMoves() @c list_moves @endlink
         - @link CmdListStones() @c list_stones @endlink
         - @link CmdLoadSgf() @c loadsgf @endlink
         - @link CmdName() @c name @endlink
@@ -96,6 +98,8 @@ public:
     virtual void CmdIsLegal(GtpCommand&);
     virtual void CmdKgsTimeSettings(GtpCommand& cmd);
     virtual void CmdKomi(GtpCommand&);
+    virtual void CmdListHandicap(GtpCommand&);
+    virtual void CmdListMoves(GtpCommand&);
     virtual void CmdListStones(GtpCommand&);
     virtual void CmdLoadSgf(GtpCommand&);
     virtual void CmdName(GtpCommand&);
