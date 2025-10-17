@@ -8,7 +8,7 @@ A secondary goal of the Fuego on iOS project is to provide an iOS build of Fuego
 
 Fuego on iOS currently combines
 
-* Boost 1.75.0
+* Boost 1.89.0
 * Fuego trunk r1728
 
 ## Quickstart Guide
@@ -44,11 +44,11 @@ Currently, upstream changes are manually synchronized from time to time. A futur
 The `fuego-on-ios` branch is dedicated to maintaining the following stuff:
 
 1. `boost/modular-boost`: A Git submodule that tracks a specific release of Boost in [the official upstream repository](https://github.com/boostorg/boost).
-1. `boost/boost.sh`: A script that builds Boost for the iOS platform and packages it into a framework bundle. The script is a derivate of Pete Goodliffe's "Boost on iPhone" script. The script was forked from [this popular repo](https://gitorious.org/boostoniphone/galbraithjosephs-boostoniphone) so that outstanding bugs could be fixed for the Fuego on iOS project.
+1. `boost/boost.sh`: A script that builds Boost for the iOS platform and packages it into a XCFramework bundle. The script is a derivate of Pete Goodliffe's "Boost on iPhone" script. The script was forked from [this popular repo](https://gitorious.org/boostoniphone/galbraithjosephs-boostoniphone) so that outstanding bugs could be fixed for the Fuego on iOS project.
 1. `fuego-on-ios.xcodeproj`: The Xcode project that defines the build of Fuego for the iOS platform.
-1. `build.sh`: A script that uses the Xcode project to build Fuego (via `xcodebuild`) and packages the result into a framework bundle.
+1. `build.sh`: A script that uses the Xcode project to build Fuego (via `xcodebuild`) and packages the result into a XCFramework bundle.
 
-Also in this branch are those changes to the original Fuego source code that are necessary to make Fuego compile in the Xcode environment.
+Also in this branch are those changes to the original Fuego source code that are necessary to make Fuego compile in the Xcode environment, and with a modern version of Boost.
 
 ##### fuego-for-littlego
 
@@ -60,7 +60,7 @@ These changes are separated into their own branch because the intent for the `fu
 
 You should use `master` if you are a Git user who wants to work with the unmodified Fuego source code, but cannot be bothered to fiddle with Subversion or `svn2git`. The `master` branch simply takes care of "wrapping" the upstream Subversion repository in a Git repository. Currently the disadvantage is that the `master` branch may not be up-to-date because it is manually synchronized.
 
-You should use `fuego-on-ios` if you want a ready-to-build Fuego + Boost environment. The build products are a regular framework bundle (Boost) and an XCFramework bundle (Fuego) that you can simply add to your iOS application project.
+You should use `fuego-on-ios` if you want a ready-to-build Fuego + Boost environment. The build products are two XCFramework bundles, one for Boost and one for Fuego, that you can simply add to your iOS application project.
 
 You probably will not be interested in `fuego-for-littlego` at all, unless you want to study how the [Little Go](https://github.com/herzbube/littlego) app integrates Fuego.
 
@@ -89,7 +89,7 @@ These are the commands to first build Boost, then build Fuego:
 
 And these are the results of the build, to be integrated into other Xcode projects:
 
-    boost/ios/framework/boost.framework
+    boost/ios/framework/boost.xcframework
     ios/framework/fuego-on-ios.xcframework
 
 The most important build settings are:
@@ -139,7 +139,6 @@ In an ideal world, the `--rebase` command line option would update the local Git
    1. Check out each affected branch, then advance its HEAD: `git reset --hard [COMMIT-REF]`
 
 Once the local Git repository is in shape, the changes can be pushed to GitHub.
-
 
 ##### Integrating changes from master into fuego-on-ios
 
@@ -217,16 +216,26 @@ This takes quite a long time because it fetches all revisions from upstream Subv
 
 ## Recipes
 
-##### Build Fuego for Mac OS X
+##### Build Fuego for macOS
 
-Assuming you have Boost installed somewhere locally (e.g. through Fink, MacPorts or Homebrew), you can run these commands to build and run Fuego for Mac OS X:
+Assuming you have Boost installed somewhere locally (e.g. through Homebrew, MacPorts or Fink), you can run these commands to build and run Fuego for macOS:
 
     cd /path/to/fuego-on-ios
+    
+    # You may need to install the "autoconf" and "autotools" packages (e.g. through
+    # Homebrew, MacPorts or Fink) first.
     autoreconf -i
-    ./configure --prefix $(pwd)/macosx
+
+    # Use this if Boost can be found in a standard location, e.g. /usr/local.
+    ./configure --prefix $(pwd)/macos
+
+    # Alternatively, use this command (adjust the Homebrew example path first)
+    # if Boost is located in a non-standard location.
+    ./configure --prefix="$(pwd)/fuego-macos" --with-boost=/opt/homebrew
+
     make
     make install
-    ./macosx/bin/fuego
+    ./macos/bin/fuego
 
 Such a build may be useful to test patches on the command line.
 
