@@ -33,13 +33,13 @@ public:
     std::ostream& Output();
 
 private:
-    std::auto_ptr<__gnu_cxx::stdio_filebuf<char> > m_bufIn;
+    std::unique_ptr<__gnu_cxx::stdio_filebuf<char> > m_bufIn;
 
-    std::auto_ptr<__gnu_cxx::stdio_filebuf<char> > m_bufOut;
+    std::unique_ptr<__gnu_cxx::stdio_filebuf<char> > m_bufOut;
 
-    std::auto_ptr<std::istream> m_in;
+    std::unique_ptr<std::istream> m_in;
 
-    std::auto_ptr<std::ostream> m_out;
+    std::unique_ptr<std::ostream> m_out;
 };
 
 inline std::istream& SgProcess::Input()
