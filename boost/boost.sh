@@ -1,22 +1,112 @@
+# Modified version of the script at
+# https://github.com/apotocki/boost-iosx/blob/master/scripts/build.sh
+# Specifically of the script version in commit 33afef283183a76586b278fb405c51db5840ce10,
+# made on 15-Aug-2025:
+# https://github.com/apotocki/boost-iosx/blob/33afef283183a76586b278fb405c51db5840ce10/scripts/build.sh
+#
+# The license for the original script is available in the file
+#   boost-software-license-1.0.txt
+# that can be found adjacent to this script file.
+#
+# Modifications made to the original script:
+# - Operate on the modular-boost Git repository instead of downloading the tarball of a
+#   distributed Boost release.
+# - By default build only a small subset of Boost libraries - the ones required to build
+#   Fuego. The original script builds all Boost libraries (or at least those hardcoded
+#   in the script).
+# - Build a single Boost XCFramework that contains all requested Boost libraries. The
+#   XCFramework contains a separate fully-fledged sub-framework for each requested
+#   combination of platform + architecture, including header files. The original script
+#   instead builds one XCFramework per requested Boost library, and the sub-frameworks are
+#   simple folders with a single library file but without any headers (the header files
+#   are placed into a separate folder outside of any of the XCFramework folders).
+#   - Pros
+#     - A consuming project only needs to reference a single XCFramework, instead of
+#       multiple ones.
+#     - The XCFramework is self-contained, i.e. the consuming project does not need to
+#       configure an include path to reference header files.
+#     - Sub-frameworks contain a proper version in their Info.plist.
+#   - Cons
+#     - The XCFramework uses a lot more disk space because it contains the headers
+#       multiple times.
+# - Check whether requested Boost libraries are valid by checking whether a corresponding
+#   library folder exists in the filesystem. The original script validates requested Boost
+#   libraries by comparing against a hardcoded (and outdated!) list of known libraries.
+# - Perform library decomposing and scrunching together into frameworks, as well as
+#   XCFramework creation, based on the presence of files/folders in the filesystem after
+#   the build is complete. The original script does these things based on environment
+#   variable values that are set up at the beginning of script execution.
+#   - Pros
+#     - No special handling necessary for various Boost libraries that when built result
+#       in more than one library file (e.g. the "math" library results in
+#       libboost_math_c99.a, libboost_math_c99f.a, libboost_math_c99l.a, etc.).
+#   - Cons
+#     - Somewhat error prone, in case there are leftovers from a previous build.
+# - When invoking b2, don't use -j8 option, because B2_BUILD_OPTIONS already contains the
+#   -j option (supplied value is $THREAD_COUNT, which is based on sysctl).
+# - BUILD_DIR is a subfolder located adjacent to this script. The original script sets
+#   BUILD_DIR to be the current working directory.
+# - ICU building is disabled.
+# - Version variables (e.g. IOS_VERSION, IOS_SIM_VERSION, etc.)
+#   - The definitions are made so that if the environment variable is already set by the
+#     caller, the value provided by the caller is used. The original script does not allow
+#     to override the hardcoded values.
+#   - IOS_VERSION and IOS_SIM_VERSION constitute deployment target versions. The defaults
+#     values for these variables are set to 12.0, which are the oldest version still
+#     supported by the iOS 26 SDK that is used to modernize the Boost build. On a
+#     side-note, 11.0 was the first version that no longer supports 32-bit builds.
+#     The original script has 13.4 as hardcoded default value for both variables.
+# - Add some compiler options to B2_BUILD_OPTIONS to ensure compatibility with Little Go.
+#     -stdlib=libc++
+#     -fvisibility=hidden
+#     -fvisibility-inlines-hidden
+#
+# The way how the individual Boost libraries' library files are scrunched together into
+# a single library per platform + architecture was merged into the original script from
+# code that existed in a previous version of this file - see the Git history. That
+# previous version was inspired by Pete Goodcliffe's original "build Boost for iOS"
+# script, with various modifications. See the repository's top-level README.md for
+# details.
+#
+# Things that were not taken over from a previous version of this script:
+# - Generation of header files with "./b2 headers". It seems that this is done
+#   automatically by the Boost build. The header files can be found in
+#   modular-boost/boost.
+# - The ability to specify base SDK versions via the environment variables
+#     IPHONEOS_BASESDK_VERSION
+#     IPHONE_SIMULATOR_BASESDK_VERSION
+#   The new version of the script does not contain support for defining the base SDK,
+#   and because this flexibility was never used in the many years since this repository
+#   was conceived, it did not seem worth the extra effort to re-develop the capability.
+# - The following compiler options:
+#     -DBOOST_AC_USE_PTHREADS
+#     -DBOOST_SP_USE_PTHREADS
+#   There was a remark by Pete Goodcliffe in the previous version of this script that said
+#   that these were required at one time to work around a thread race issue in shared_ptr,
+#   but it was not clear whether this workaround was still required.
+# - The compiler option -std=gnu++98. This no longer works with a modern Boost version.
+
 #!/bin/bash
 set -euo pipefail
 ################## SETUP BEGIN
 THREAD_COUNT=$(sysctl hw.ncpu | awk '{print $2}')
 HOST_ARC=$( uname -m )
 XCODE_ROOT=$( xcode-select -print-path )
-BOOST_VER=1.89.0
-EXPECTED_HASH="85a33fa22621b4f314f8e85e1a5e2a9363d22e4f4992925d4bb3bc631b5a0c7a"
-MACOSX_VERSION_ARM=12.3
-MACOSX_VERSION_X86_64=10.13
-IOS_VERSION=13.4
-IOS_SIM_VERSION=13.4
-CATALYST_VERSION=13.4
-TVOS_VERSION=13.0
-TVOS_SIM_VERSION=13.0
-WATCHOS_VERSION=11.0
-WATCHOS_SIM_VERSION=11.0
+# - MACOSX_VERSION_ARM, MACOSX_VERSION_X86_64, IOS_VERSION and IOS_SIM_VERSION are used to
+#   set the respective deployment targets.
+# - TVOS_VERSION and WATCHOS_VERSION are currently not used
+# - CATALYST_VERSION, TVOS_SIM_VERSION and WATCHOS_SIM_VERSION are used to form the value
+#   of the --target compiler option of the respective builds.
+: ${MACOSX_VERSION_ARM:=12.3}
+: ${MACOSX_VERSION_X86_64:=10.13}
+: ${IOS_VERSION:=12.0}
+: ${IOS_SIM_VERSION:=12.0}
+: ${CATALYST_VERSION:=13.4}
+: ${TVOS_VERSION:=13.0}
+: ${TVOS_SIM_VERSION:=13.0}
+: ${WATCHOS_VERSION:=11.0}
+: ${WATCHOS_SIM_VERSION:=11.0}
 ################## SETUP END
-LOCATIONS_FILE_URL="https://github.com/apotocki/boost-iosx/raw/refs/heads/master/LOCATIONS"
 IOSSYSROOT=$XCODE_ROOT/Platforms/iPhoneOS.platform/Developer
 IOSSIMSYSROOT=$XCODE_ROOT/Platforms/iPhoneSimulator.platform/Developer
 MACSYSROOT=$XCODE_ROOT/Platforms/MacOSX.platform/Developer
@@ -27,17 +117,30 @@ TVOSSIMSYSROOT=$XCODE_ROOT/Platforms/AppleTVSimulator.platform/Developer
 WATCHOSSYSROOT=$XCODE_ROOT/Platforms/WatchOS.platform/Developer
 WATCHOSSIMSYSROOT=$XCODE_ROOT/Platforms/WatchSimulator.platform/Developer
 
-LIBS_TO_BUILD_ALL="atomic,chrono,container,context,contract,coroutine,date_time,exception,fiber,filesystem,graph,iostreams,json,locale,log,math,nowide,program_options,random,regex,serialization,stacktrace,test,thread,timer,type_erasure,wave,url,cobalt,charconv"
-
 BUILD_PLATFORMS_ALL="macosx,macosx-arm64,macosx-x86_64,macosx-both,ios,iossim,iossim-arm64,iossim-x86_64,iossim-both,catalyst,catalyst-arm64,catalyst-x86_64,catalyst-both,xros,xrossim,xrossim-arm64,xrossim-x86_64,xrossim-both,tvos,tvossim,tvossim-both,tvossim-arm64,tvossim-x86_64,watchos,watchossim,watchossim-both,watchossim-arm64,watchossim-x86_64"
 
-BOOST_NAME=boost_${BOOST_VER//./_}
-BUILD_DIR="$( cd "$( dirname "./" )" >/dev/null 2>&1 && pwd )"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+BOOST_DIR="$SCRIPT_DIR/modular-boost"
+BOOST_HEADERS_DIR="$BOOST_DIR/boost"
+BUILD_DIR="$SCRIPT_DIR/build"
+UNIVERSAL_LIBRARY_NAME=libboost.a
+# The framework name determines the prefix that consumers must use in their
+# include statements, e.g. framework name "boost" results in this statement:
+#   #include <boost/someheaderfile.h>
+FRAMEWORK_NAME=boost
+FRAMEWORK_BUNDLE_NAME=$FRAMEWORK_NAME.framework
+XCFRAMEWORK_BUNDLE_NAME=$FRAMEWORK_NAME.xcframework
+# A previous version of this script used the -sdk parameter to locate platform-specific
+# versions of each tool. This was removed because it seemed to be unnecessary overhead,
+# as these tools merely need to run on the build system.
+LIPO="$(xcrun -find lipo)"
+AR="$(xcrun -find ar)"
+LIBTOOL="$(xcrun -find libtool)"
+BOOST_VERSION=`cd $BOOST_DIR; git describe --tags | sed -e 's/^.*\/Boost_\([^\/]*\)/\1/'`
 
 [[ $(clang++ --version | head -1 | sed -E 's/([a-zA-Z ]+)([0-9]+).*/\2/') -gt 14 ]] && CLANG15=true
 
-LIBS_TO_BUILD=$LIBS_TO_BUILD_ALL
+LIBS_TO_BUILD="thread,filesystem,program_options,system,date_time"
 [[ ! $CLANG15 ]] && LIBS_TO_BUILD="${LIBS_TO_BUILD/,cobalt/}"
 
 BUILD_PLATFORMS="macosx,ios,iossim,catalyst"
@@ -121,7 +224,7 @@ LIBS_TO_BUILD_SORTED="${LIBS_TO_BUILD_SORTED_ARRAY[@]}"
 #LIBS_HASH=$( echo -n $LIBS_TO_BUILD_SORTED | shasum -a 256 | awk '{ print $1 }' )
 
 for i in $LIBS_TO_BUILD; do :;
-if [[ ! ",$LIBS_TO_BUILD_ALL," == *",$i,"* ]]; then
+if [[ ! -d "$BOOST_DIR/libs/$i" ]]; then
 	echo "Unknown library '$i'"
 	exit 1
 fi
@@ -181,73 +284,23 @@ if [[ ! ",$BUILD_PLATFORMS_ALL," == *",$i,"* ]]; then
 fi
 done
 
+if test ! -d "$BUILD_DIR"; then
+  mkdir -p "$BUILD_DIR"
+fi
+
 [[ -f "$BUILD_DIR/frameworks.built.platforms" ]] && [[ -f "$BUILD_DIR/frameworks.built.libs" ]] && [[ $(< $BUILD_DIR/frameworks.built.platforms) == $BUILD_PLATFORMS ]] && [[ $(< $BUILD_DIR/frameworks.built.libs) == $LIBS_TO_BUILD ]] && exit 0
 
 [[ -f "$BUILD_DIR/frameworks.built.platforms" ]] && rm "$BUILD_DIR/frameworks.built.platforms"
 [[ -f "$BUILD_DIR/frameworks.built.libs" ]] && rm "$BUILD_DIR/frameworks.built.libs"
 
-
-BOOST_ARCHIVE_FILE=$BOOST_NAME.tar.bz2
-
-if [[ -f $BOOST_ARCHIVE_FILE ]]; then
-	FILE_HASH=$(shasum -a 256 "$BOOST_ARCHIVE_FILE" | awk '{ print $1 }')
-	if [[ ! "$FILE_HASH" == "$EXPECTED_HASH" ]]; then
-    	echo "Wrong archive hash, trying to reload the archive"
-        rm "$BOOST_ARCHIVE_FILE"
-    fi
-fi
-
-if [[ ! -f $BOOST_ARCHIVE_FILE ]]; then
-	TEMP_LOCATIONS_FILE=$(mktemp)
-	curl -s -o "$TEMP_LOCATIONS_FILE" -L "$LOCATIONS_FILE_URL"
-	if [[ $? -ne 0 ]]; then
-	    echo "Failed to download the LOCATIONS file."
-	    exit 1
-	fi
-	while IFS= read -r linktemplate; do
-		linktemplate=${linktemplate/DOTVERSION/"$BOOST_VER"}
-		link=${linktemplate/FILENAME/"$BOOST_ARCHIVE_FILE"}
-		echo "downloading from \"$link\" ..."
-
-	    curl -o "$BOOST_ARCHIVE_FILE" -L "$link"
-
-	    # Check if the download was successful
-	    if [ $? -eq 0 ]; then
-	        FILE_HASH=$(shasum -a 256 "$BOOST_ARCHIVE_FILE" | awk '{ print $1 }')
-	        if [[ "$FILE_HASH" == "$EXPECTED_HASH" ]]; then
-	        	[[ -d boost ]] && rm -rf boost
-	            break
-	        else
-	        	echo "Wrong archive hash $FILE_HASH, expected $EXPECTED_HASH. Trying next link to reload the archive."
-                echo "File content: "
-                head -c 1024 $BOOST_ARCHIVE_FILE
-                echo ""
-	        	rm $BOOST_ARCHIVE_FILE
-	        fi
-	    fi
-	done < "$TEMP_LOCATIONS_FILE"
-	rm "$TEMP_LOCATIONS_FILE"
-fi
-
-if [[ ! -f $BOOST_ARCHIVE_FILE ]]; then
-	echo "Failed to download the Boost."
-    exit 1
-fi
-
-if [[ ! -d boost ]]; then
-	echo "extracting $BOOST_ARCHIVE_FILE ..."
-	tar -xf $BOOST_ARCHIVE_FILE
-	mv $BOOST_NAME boost
-fi
-
-if [[ ! -f boost/b2 ]]; then
-	pushd boost
+if [[ ! -f $BOOST_DIR/b2 ]]; then
+	pushd "$BOOST_DIR"
 	./bootstrap.sh
 	popd
 fi
 
 ############### ICU
-if true; then
+if false; then
 #export ICU4C_RELEASE_LINK=https://github.com/apotocki/icu4c-iosx/releases/download/76.1.4
 if [[ ! -f $SCRIPT_DIR/Pods/icu4c-iosx/build.success ]] || [[ $(is_subset $SCRIPT_DIR/Pods/icu4c-iosx/build.success "${BUILD_PLATFORMS_ARRAY[@]}") == "false" ]]; then
     if [[ ! -z "${ICU4C_RELEASE_LINK:-}" ]]; then
@@ -301,7 +354,7 @@ ICU_PATH=$SCRIPT_DIR/Pods/icu4c-iosx/product
 fi
 ############### ICU
 
-pushd boost
+pushd "$BOOST_DIR"
 
 echo patching boost...
 
@@ -325,8 +378,10 @@ else
 fi
 patch tools/build/src/tools/features/instruction-set-feature.jam $SCRIPT_DIR/instruction-set-feature.jam.patch
 
+# TODO xxx add patching for utf8_codecvt_facet
 
 B2_BUILD_OPTIONS="-j$THREAD_COUNT address-model=64 release link=static runtime-link=shared define=BOOST_SPIRIT_THREADSAFE cxxflags=\"-std=c++20\""
+B2_BUILD_OPTIONS="$B2_BUILD_OPTIONS cxxflags=\"-stdlib=libc++\" cxxflags=\"-fvisibility=hidden\" cxxflags=\"-fvisibility-inlines-hidden\""
 
 [[ ! -z "${ICU_PATH:-}" ]] && B2_BUILD_OPTIONS="$B2_BUILD_OPTIONS -sICU_PATH=\"$ICU_PATH\""
 
@@ -341,11 +396,10 @@ done
 build_generic_libs()
 {
 if [[ $REBUILD == true ]] || [[ ! -f $1-$2-build.success ]] || [[ $(is_subset $1-$2-build.success "${LIBS_TO_BUILD_ARRAY[@]}") == "false" ]]; then
-
     [[ -f $1-$2-build.success ]] && rm $1-$2-build.success
     
     [[ -f tools/build/src/user-config.jam ]] && rm -f tools/build/src/user-config.jam
-    
+
     cat >> tools/build/src/user-config.jam <<EOF
 using darwin : $1 : clang++ -arch $2 $3
 : <striper> <root>$4
@@ -357,7 +411,8 @@ EOF
         cp $ICU_PATH/frameworks/icui18n.xcframework/$5/libicui18n.a $ICU_PATH/lib/
         cp $ICU_PATH/frameworks/icuuc.xcframework/$5/libicuuc.a $ICU_PATH/lib/
     fi
-    ./b2 -j8 --stagedir=stage/$1-$2 toolset=darwin-$1 architecture=$(boost_arc $2) abi=$(boost_abi $2) ${7:-} $B2_BUILD_OPTIONS
+
+    ./b2 --stagedir=stage/$1-$2 toolset=darwin-$1 architecture=$(boost_arc $2) abi=$(boost_abi $2) ${7:-} $B2_BUILD_OPTIONS
     rm -rf bin.v2
     printf "$LIBS_TO_BUILD_SORTED" > $1-$2-build.success
 fi
@@ -452,70 +507,161 @@ echo installing boost...
 [[ -d "$BUILD_DIR/frameworks" ]] && rm -rf "$BUILD_DIR/frameworks"
 mkdir "$BUILD_DIR/frameworks"
 
-build_lib()
+buildFramework()
 {
-	if [[ "$BUILD_PLATFORMS_SPACED" == *"$2-arm64"* ]]; then
-		if [[ "$BUILD_PLATFORMS_SPACED" == *"$2-x86_64"* ]]; then
-			lipo -create stage/$2-arm64/lib/lib$1.a stage/$2-x86_64/lib/lib$1.a -output stage/$2/lib/lib$1.a
-			LIBARGS="$LIBARGS -library stage/$2/lib/lib$1.a"
-		else
-			LIBARGS="$LIBARGS -library stage/$2-arm64/lib/lib$1.a"
-		fi
-	else
-		[[ "$BUILD_PLATFORMS_SPACED" == *"$2-x86_64"* ]] && LIBARGS="$LIBARGS -library stage/$2-x86_64/lib/lib$1.a"
-	fi
+    : ${1:?}
+    FRAMEWORK_BUNDLE_PATH=$1
+    UNIVERSAL_LIBRARY_PATH=$2
+
+    VERSION_TYPE=Alpha
+    FRAMEWORK_VERSION=A
+
+    FRAMEWORK_CURRENT_VERSION=$BOOST_VERSION
+    FRAMEWORK_COMPATIBILITY_VERSION=$BOOST_VERSION
+
+    echo "Framework: Building $(basename $FRAMEWORK_BUNDLE_PATH) from $(basename $UNIVERSAL_LIBRARY_PATH)..."
+
+    rm -rf $FRAMEWORK_BUNDLE_PATH
+
+    echo "Framework: Setting up directories..."
+    mkdir -p $FRAMEWORK_BUNDLE_PATH
+    mkdir -p $FRAMEWORK_BUNDLE_PATH/Versions
+    mkdir -p $FRAMEWORK_BUNDLE_PATH/Versions/$FRAMEWORK_VERSION
+    mkdir -p $FRAMEWORK_BUNDLE_PATH/Versions/$FRAMEWORK_VERSION/Resources
+    mkdir -p $FRAMEWORK_BUNDLE_PATH/Versions/$FRAMEWORK_VERSION/Headers
+    mkdir -p $FRAMEWORK_BUNDLE_PATH/Versions/$FRAMEWORK_VERSION/Documentation
+
+    echo "Framework: Creating symlinks..."
+    ln -s $FRAMEWORK_VERSION               $FRAMEWORK_BUNDLE_PATH/Versions/Current
+    ln -s Versions/Current/Headers         $FRAMEWORK_BUNDLE_PATH/Headers
+    ln -s Versions/Current/Resources       $FRAMEWORK_BUNDLE_PATH/Resources
+    ln -s Versions/Current/Documentation   $FRAMEWORK_BUNDLE_PATH/Documentation
+    ln -s Versions/Current/$FRAMEWORK_NAME $FRAMEWORK_BUNDLE_PATH/$FRAMEWORK_NAME
+
+    echo "Framework: Copying universal library..."
+    cp $UNIVERSAL_LIBRARY_PATH "$FRAMEWORK_BUNDLE_PATH/Versions/$FRAMEWORK_VERSION/$FRAMEWORK_NAME"
+
+    echo "Framework: Copying includes..."
+    cp -RL $BOOST_HEADERS_DIR/*  $FRAMEWORK_BUNDLE_PATH/Headers/
+
+    echo "Framework: Creating plist..."
+    cat > $FRAMEWORK_BUNDLE_PATH/Resources/Info.plist <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>${FRAMEWORK_NAME}</string>
+	<key>CFBundleIdentifier</key>
+	<string>org.boost</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundlePackageType</key>
+	<string>FMWK</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>${FRAMEWORK_CURRENT_VERSION}</string>
+</dict>
+</plist>
+EOF
 }
 
-build_xcframework()
+scrunchAllLibsTogetherInOneLibPerPlatformPerArchitecture()
 {
-	LIBARGS=
-	[[ "$BUILD_PLATFORMS_SPACED" == *macosx* ]] && build_lib $1 macosx
-	[[ "$BUILD_PLATFORMS_SPACED" == *catalyst* ]] && build_lib $1 catalyst
-	[[ "$BUILD_PLATFORMS_SPACED" == *iossim* ]] && build_lib $1 iossim
-	[[ "$BUILD_PLATFORMS_SPACED" == *xrossim* ]] && build_lib $1 xrossim
-    [[ "$BUILD_PLATFORMS_SPACED" == *tvossim* ]] && build_lib $1 tvossim
-    [[ "$BUILD_PLATFORMS_SPACED" == *watchossim* ]] && build_lib $1 watchossim
-	[[ "$BUILD_PLATFORMS_SPACED" == *"ios "* ]] && LIBARGS="$LIBARGS -library stage/ios-arm64/lib/lib$1.a"
-	[[ "$BUILD_PLATFORMS_SPACED" == *"xros "* ]] && LIBARGS="$LIBARGS -library stage/xros-arm64/lib/lib$1.a"
-    [[ "$BUILD_PLATFORMS_SPACED" == *"tvos "* ]] && LIBARGS="$LIBARGS -library stage/tvos-arm64/lib/lib$1.a"
-    [[ "$BUILD_PLATFORMS_SPACED" == *"watchos "* ]] && LIBARGS="$LIBARGS -library stage/watchos-arm64/lib/lib$1.a"
-    xcodebuild -create-xcframework $LIBARGS -output "$BUILD_DIR/frameworks/$1.xcframework"
+  for PLATFORM_ARCHITECTURE_COMBO_STAGE_PATH in stage/*; do
+    PLATFORM_ARCHITECTURE_COMBO_NAME="$(basename $PLATFORM_ARCHITECTURE_COMBO_STAGE_PATH)"
+    PLATFORM_ARCHITECTURE_COMBO_BUILD_PATH="$BUILD_DIR/$PLATFORM_ARCHITECTURE_COMBO_NAME"
+    
+    UNIVERSAL_LIBRARY_PATH="$PLATFORM_ARCHITECTURE_COMBO_BUILD_PATH/$UNIVERSAL_LIBRARY_NAME"
+    FRAMEWORK_BUNDLE_PATH="$PLATFORM_ARCHITECTURE_COMBO_BUILD_PATH/$FRAMEWORK_BUNDLE_NAME"
+
+    # For some pseudo platforms (e.g. iossim, macosx) a staging folder with an empty
+    # "libs" subfolder is created => this we can skip
+    NUMBER_OF_LIBARIES_TO_DECOMPOSE=$(ls $PLATFORM_ARCHITECTURE_COMBO_STAGE_PATH/lib | wc -l)
+    if test "$NUMBER_OF_LIBARIES_TO_DECOMPOSE" -eq 0; then
+      continue
+    fi
+
+    echo "Decomposing all libraries for $PLATFORM_ARCHITECTURE_COMBO_NAME..."
+    for LIBRARY_PATH in $PLATFORM_ARCHITECTURE_COMBO_STAGE_PATH/lib/*.a; do
+      LIBRARY_FILENAME="$(basename $LIBRARY_PATH)"
+      LIBRARY_NAME="$(echo $LIBRARY_FILENAME | sed -e 's/^libboost_//' -e 's/\.a$//')"
+      OBJ_FOLDER_NAME="obj_$LIBRARY_NAME"
+      OBJ_FOLDER_PATH="$PLATFORM_ARCHITECTURE_COMBO_BUILD_PATH/$OBJ_FOLDER_NAME"
+
+      echo "  Decomposing $LIBRARY_FILENAME ..."
+
+      # Must have separate obj folders for each library, because separate
+      # libraries may contain object files with the same name.
+      
+      # In older versions of this script we sometimes built fat libraries, i.e. libraries
+      # that contained multiple architectures. If that happened we had to use "lipo -thin"
+      # for each architecture to extract the architecture-specific part from the fat
+      # library, before we could use "ar" to extract the individual object files. This
+      # is no longer necessary because we always build only one architecture.
+
+      mkdir -p "$OBJ_FOLDER_PATH"
+      cp "$LIBRARY_PATH" "$PLATFORM_ARCHITECTURE_COMBO_BUILD_PATH"
+      (cd "$OBJ_FOLDER_PATH"; "$AR" -x "../$LIBRARY_FILENAME");
+    done
+
+    # The original solution used "ar crus" to create the library for the first
+    # architecture, then incrementally add to the library for each subsequent
+    # architecture. In certain scenarios, the "ar" utility apparently is not
+    # capable of creating archives with mixed CPU types. For instance, when
+    # architectures arm64 and x86_64 are built for the simulator, the first
+    # invocation of "ar" will create the library with the arm64 object files,
+    # but the second invocation of "ar" will silently do nothing, i.e. it will
+    # ***NOT*** add the x86_64 object files to the library as expected. Only
+    # when "ar" is invoked with the object files of all architectures does the
+    # utility print warning/error messages and exit with exit code 1. The
+    # messages are
+    #   ranlib: archive member: <foo> cputype (16777223) does not match previous archive members cputype (16777228) (all members must match)
+    #   [...] repeated for each object file of the architectures beyond the first architecture
+    #   ranlib: archive library: <foo> will be fat and ar(1) will not be able to operate on it
+    #   ar: internal ranlib command failed
+    #
+    # The weird thing is that for years "ar crus" worked perfectly to create a
+    # universal library with architectures "armv7 armv7s arm64 i386 x86_64"
+    # (arm architectures from iOS build, x86 architectures from simulator
+    # build). The problem occurred only after switching to Xcode 15 and trying
+    # to build the universal library for "arm64 x86_64" (arm64 either from iOS
+    # or simulator build, x86_64 always from simulator build). It is not clear
+    # whether the problem is due to new behaviour in ar/ranlib from Xcode 15, or
+    # whether the problem is tied to the combination of exactly the two
+    # architectures arm64 and x86_64.
+    #
+    # In any case, we now use libtool instead of ar, because libtool does not
+    # suffer from the issue. Because libtool does not support adding to an
+    # already existing library, the incremental approach was ditched and the
+    # library is now created in a single libtool invocation.
+    echo "Linking all libraries for $PLATFORM_ARCHITECTURE_COMBO_NAME into a single library => $UNIVERSAL_LIBRARY_NAME"
+    rm -f "$UNIVERSAL_LIBRARY_PATH"
+    (cd "$PLATFORM_ARCHITECTURE_COMBO_BUILD_PATH"; "$LIBTOOL" -static -o "$UNIVERSAL_LIBRARY_PATH" obj_*/*.o;)
+
+    buildFramework "$FRAMEWORK_BUNDLE_PATH" "$UNIVERSAL_LIBRARY_PATH"
+  done
 }
 
-if true; then
-for i in $LIBS_TO_BUILD; do :;
-	if [ $i == "math" ]; then
-		build_xcframework boost_math_c99
-		build_xcframework boost_math_c99l
-		build_xcframework boost_math_c99f
-		build_xcframework boost_math_tr1
-		build_xcframework boost_math_tr1l
-		build_xcframework boost_math_tr1f
-	elif [ $i == "log" ]; then
-		build_xcframework boost_log
-		build_xcframework boost_log_setup
-	elif [ $i == "stacktrace" ]; then
-		build_xcframework boost_stacktrace_basic
-		build_xcframework boost_stacktrace_noop
-		#build_xcframework boost_stacktrace_addr2line
-	elif [ $i == "serialization" ]; then
-		build_xcframework boost_serialization
-		build_xcframework boost_wserialization
-	elif [ $i == "test" ]; then
-		build_xcframework boost_prg_exec_monitor
-		build_xcframework boost_test_exec_monitor
-		build_xcframework boost_unit_test_framework
-	else
-	    build_xcframework "boost_$i"
-	fi
-done
+buildXcFramework()
+{
+  echo "Building XCFramework..."
 
+  FRAMEWORK_ARGS=
+  for FRAMEWORK_BUNDLE_PATH in $BUILD_DIR/*/$FRAMEWORK_BUNDLE_NAME; do
+    FRAMEWORK_ARGS="$FRAMEWORK_ARGS -framework $FRAMEWORK_BUNDLE_PATH"
+  done
 
-mkdir "$BUILD_DIR/frameworks/Headers"
-cp -R boost "$BUILD_DIR/frameworks/Headers/"
-#mv boost "$BUILD_DIR/frameworks/Headers/"
-#touch "$BUILD_DIR/frameworks.built"
-fi
+  xcodebuild -create-xcframework \
+             $FRAMEWORK_ARGS \
+             -output "$BUILD_DIR/$XCFRAMEWORK_BUNDLE_NAME"
+}
+
+scrunchAllLibsTogetherInOneLibPerPlatformPerArchitecture
+buildXcFramework
 
 printf "$BUILD_PLATFORMS" > $BUILD_DIR/frameworks.built.platforms
 printf "$LIBS_TO_BUILD" > $BUILD_DIR/frameworks.built.libs
