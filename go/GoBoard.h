@@ -781,7 +781,7 @@ private:
 
     State m_state;
 
-    std::auto_ptr<Snapshot> m_snapshot;
+    std::unique_ptr<Snapshot> m_snapshot;
 
     /** See CountPlay */
     uint64_t m_countPlay;

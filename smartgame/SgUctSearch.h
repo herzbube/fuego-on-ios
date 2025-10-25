@@ -672,9 +672,9 @@ public:
 
     void SetBiasTermFrequency(int frequency);
 
-    int BiasTermDepth() const;
+    std::size_t BiasTermDepth() const;
 
-    void SetBiasTermDepth(int depth);
+    void SetBiasTermDepth(std::size_t depth);
 
     /** Points at which to recompute children.  
         Specifies the number of visits at which GenerateAllMoves() is
@@ -907,9 +907,9 @@ private:
     class Thread
     {
     public:
-        std::auto_ptr<SgUctThreadState> m_state;
+        std::unique_ptr<SgUctThreadState> m_state;
 
-        Thread(SgUctSearch& search, std::auto_ptr<SgUctThreadState> state);
+        Thread(SgUctSearch& search, std::unique_ptr<SgUctThreadState> state);
 
         ~Thread();
 
@@ -962,7 +962,7 @@ private:
         void PlayGames();
     };
 
-    std::auto_ptr<SgUctThreadStateFactory> m_threadStateFactory;
+    std::unique_ptr<SgUctThreadStateFactory> m_threadStateFactory;
 
     /** See LogGames() */
     bool m_logGames;
@@ -981,14 +981,14 @@ private:
     
     volatile bool m_isTreeOutOfMemory;
 
-    std::auto_ptr<boost::barrier> m_searchLoopFinished;
+    std::unique_ptr<boost::barrier> m_searchLoopFinished;
 
     /** See SgUctEarlyAbortParam. */
     bool m_wasEarlyAbort;
 
     /** See SgUctEarlyAbortParam.
         The auto pointer is empty, if no early abort is used. */
-    std::auto_ptr<SgUctEarlyAbortParam> m_earlyAbort;
+    std::unique_ptr<SgUctEarlyAbortParam> m_earlyAbort;
 
     /** See SgUctMoveSelect */
     SgUctMoveSelect m_moveSelect;
@@ -1213,12 +1213,12 @@ inline void SgUctSearch::SetBiasTermFrequency(int frequency)
     m_biasTermFrequency = frequency;
 }
 
-inline int SgUctSearch::BiasTermDepth() const
+inline std::size_t SgUctSearch::BiasTermDepth() const
 {
     return m_biasTermDepth;
 }
 
-inline void SgUctSearch::SetBiasTermDepth(int depth) 
+inline void SgUctSearch::SetBiasTermDepth(std::size_t depth)
 {
     m_biasTermDepth = depth;
 }

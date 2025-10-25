@@ -394,7 +394,11 @@ inline int SgUctNode::VirtualLossCount() const
 
 inline void SgUctNode::AddVirtualLoss()
 {
-    m_virtualLossCount++;
+    // C++20 deprecates increment and decrement operations on volatile types
+    // because the volatile object cannot be manipulated atomically.
+    auto virtualLossCount = m_virtualLossCount;
+    virtualLossCount++;
+    m_virtualLossCount = virtualLossCount;
 }
 
 inline void SgUctNode::RemoveVirtualLoss()
@@ -402,12 +406,20 @@ inline void SgUctNode::RemoveVirtualLoss()
     // May become negative with lock-free multithreading.  Negative
     // values are allowed so that errors introduced by multithreading
     // will tend to average out.
-    m_virtualLossCount--;
+    // C++20 deprecates increment and decrement operations on volatile types
+    // because the volatile object cannot be manipulated atomically.
+    auto virtualLossCount = m_virtualLossCount;
+    virtualLossCount--;
+    m_virtualLossCount = virtualLossCount;
 }
 
 inline void SgUctNode::IncPosCount()
 {
-    ++m_posCount;
+    // C++20 deprecates increment and decrement operations on volatile types
+    // because the volatile object cannot be manipulated atomically.
+    auto posCount = m_posCount;
+    ++posCount;
+    m_posCount = posCount;
 }
 
 inline void SgUctNode::IncPosCount(SgUctValue count)

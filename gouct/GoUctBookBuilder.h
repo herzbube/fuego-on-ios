@@ -293,7 +293,11 @@ void GoUctBookBuilder<PLAYER>::CreateWorkers()
         // Ensure all games are played; ie, do not use early count abort.
         newPlayer->Search().SetMoveSelect(SG_UCTMOVESELECT_ESTIMATE);
         newPlayer->Search().SetMaxNodes(m_maxMemory / (m_numWorkers * 2 * sizeof(SgUctNode)));
-        newPlayer->Search().SetNumberThreads(m_numThreadsPerWorker);
+        // SgUctSearch::SetNumberThreads expects "unsigned int", but
+        // std::size_t may be larger on certain platforms.
+        SG_ASSERT(m_numThreadsPerWorker >= std::numeric_limits<unsigned int>::min() &&
+                  m_numThreadsPerWorker <= std::numeric_limits<unsigned int>);
+        newPlayer->Search().SetNumberThreads(static_cast<unsigned int>(m_numThreadsPerWorker));
         newPlayer->SetReuseSubtree(false);
         newPlayer->SetWriteDebugOutput(false);
 

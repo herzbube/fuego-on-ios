@@ -456,7 +456,7 @@ void GoGtpEngine::CmdGenMove(GtpCommand& cmd)
 {
     cmd.CheckNuArg(1);
     SgBlackWhite color = BlackWhiteArg(cmd, 0);
-    std::auto_ptr<SgDebugToString> debugStrToString;
+    std::unique_ptr<SgDebugToString> debugStrToString;
     if (m_debugToComment)
         debugStrToString.reset(new SgDebugToString(true));
     SgPoint move = GenMove(color, false);

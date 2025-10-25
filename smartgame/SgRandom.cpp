@@ -68,9 +68,13 @@ void SgRandom::SetSeed(int seed)
     else
         GetGlobalData().m_seed = seed;
     SgDebug() << "SgRandom::SetSeed: " << GetGlobalData().m_seed << '\n';
-    for_each(GetGlobalData().m_allGenerators.begin(),
-             GetGlobalData().m_allGenerators.end(),
-             std::mem_fun(&SgRandom::SetSeed));
+    // The original code used for_each combined with std::mem_fun. std::mem_fun
+    // was removed in C++17. An easy replacement with the modern std::mem_fn
+    // or std::bind could not be found, therefore this re-implementation.
+    for (const auto& generator : GetGlobalData().m_allGenerators)
+    {
+        generator->SetSeed();
+    }
     srand(GetGlobalData().m_seed);
 }
 

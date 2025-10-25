@@ -29,8 +29,14 @@ GoUctAdditiveKnowledgeFuego::ProcessPosition(std::vector<SgUctMoveInfo>&
                                              moves)
 {
     float sum = 0.0;
-    float values[moves.size()];
-    for (size_t i = 0; i < moves.size(); ++i) 
+    // The original code use a variable length array. Variable length arrays
+    // are not part of the C++ standard. Some compilers may support them, but
+    // at least modern version of Clang nowadays generate a warning
+    // ("Variable length arrays in C++ are a Clang extension").
+    // Although the warning could be suppressed, it is better to not use the
+    // language incorrectly. A good replacement for arrays is std::vector.
+    std::vector<float> values(moves.size());
+    for (size_t i = 0; i < moves.size(); ++i)
     {
         values[i] = exp(VALUE_MULTIPLIER * moves[i].m_raveValue);
         sum += values[i];

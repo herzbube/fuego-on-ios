@@ -19,7 +19,7 @@ using namespace std;
     for SgDebug(). */
 static ofstream s_nullStream;
 
-static auto_ptr<ofstream> s_fileStream;
+static unique_ptr<ofstream> s_fileStream;
 
 
 ostream* g_debugStrPtr(&cerr);
