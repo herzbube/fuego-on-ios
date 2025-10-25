@@ -42,6 +42,12 @@
 #       libboost_math_c99.a, libboost_math_c99f.a, libboost_math_c99l.a, etc.).
 #   - Cons
 #     - Somewhat error prone, in case there are leftovers from a previous build.
+# - Rename source files in libraries to be built that have the same name. This is
+#   necessary because object files from multiple libraries are scrunched into the same
+#   archive file. This renaming is only done for known cases in Boost libraries that
+#   are needed by Fuego. To protect against unknown cases a duplicate object file check
+#   exists during scrunching. The original script does not have, nor need, this duplicate
+#   handling because it builds one sub-framework per Boost library.
 # - When invoking b2, don't use -j8 option, because B2_BUILD_OPTIONS already contains the
 #   -j option (supplied value is $THREAD_COUNT, which is based on sysctl).
 # - BUILD_DIR is a subfolder located adjacent to this script. The original script sets
@@ -378,7 +384,19 @@ else
 fi
 patch tools/build/src/tools/features/instruction-set-feature.jam $SCRIPT_DIR/instruction-set-feature.jam.patch
 
-# TODO xxx add patching for utf8_codecvt_facet
+# Duplicate object file "utf8_codecvt_facet.o" causes one of them to be
+# discarded/overwritten during library scrunching. In an earlier version of this script,
+# the library organization allowed for duplicate object files to exist in the same library
+# (probably due to fat libraries), but this then caused build warnings in a consuming
+# project. Renaming source files solves all these problems, because the resulting object
+# files will then have unique names. 
+# Solution copied from https://github.com/danoli3/ofxiOSBoost/commit/80fe8ef7b71da93d39fafa9a249da51c8d643ab2
+# which in turn was copied from http://swift.im/git/swift/tree/3rdParty/Boost/update.sh#n48?id=8dce1cd03729624a25a98dd2c0d026b93e452f86
+echo Fixing utf8_codecvt_facet.cpp duplicates...
+for LIBRARY_WITH_UTF8_CODECVT_FACET_DUPLICATE in filesystem program_options; do
+  mv "$BOOST_DIR/libs/${LIBRARY_WITH_UTF8_CODECVT_FACET_DUPLICATE}/src/utf8_codecvt_facet.cpp" "$BOOST_DIR/libs/${LIBRARY_WITH_UTF8_CODECVT_FACET_DUPLICATE}/src/${LIBRARY_WITH_UTF8_CODECVT_FACET_DUPLICATE}_utf8_codecvt_facet.cpp"
+  sed -i .bak 's/utf8_codecvt_facet/'${LIBRARY_WITH_UTF8_CODECVT_FACET_DUPLICATE}_utf8_codecvt_facet'/' "$BOOST_DIR/libs/${LIBRARY_WITH_UTF8_CODECVT_FACET_DUPLICATE}/build/Jamfile.v2"
+done
 
 B2_BUILD_OPTIONS="-j$THREAD_COUNT address-model=64 release link=static runtime-link=shared define=BOOST_SPIRIT_THREADSAFE cxxflags=\"-std=c++20\""
 B2_BUILD_OPTIONS="$B2_BUILD_OPTIONS cxxflags=\"-stdlib=libc++\" cxxflags=\"-fvisibility=hidden\" cxxflags=\"-fvisibility-inlines-hidden\""
@@ -601,12 +619,27 @@ scrunchAllLibsTogetherInOneLibPerPlatformPerArchitecture()
       # that contained multiple architectures. If that happened we had to use "lipo -thin"
       # for each architecture to extract the architecture-specific part from the fat
       # library, before we could use "ar" to extract the individual object files. This
-      # is no longer necessary because we always build only one architecture.
+      # is no longer necessary because we always build only one architecture per library
+      # file.
 
       mkdir -p "$OBJ_FOLDER_PATH"
       cp "$LIBRARY_PATH" "$PLATFORM_ARCHITECTURE_COMBO_BUILD_PATH"
-      (cd "$OBJ_FOLDER_PATH"; "$AR" -x "../$LIBRARY_FILENAME");
+      pushd "$OBJ_FOLDER_PATH"
+      "$AR" -x "../$LIBRARY_FILENAME"
+      popd
     done
+
+    pushd "$PLATFORM_ARCHITECTURE_COMBO_BUILD_PATH"
+
+    echo "Checking whether duplicate object files exist for $PLATFORM_ARCHITECTURE_COMBO_NAME"
+    DUPLICATE_OBJECT_FILES=$(ls obj_*/*.o | xargs basename | sort | uniq -c | awk '{if ($1 > 1) {print $2}}')
+    if test -z "$DUPLICATE_OBJECT_FILES"; then
+      echo "No duplicate files found"
+    else
+      echo "Found the following duplicate files:"
+      echo "$DUPLICATE_OBJECT_FILES"
+      exit 1      
+    fi
 
     # The original solution used "ar crus" to create the library for the first
     # architecture, then incrementally add to the library for each subsequent
@@ -640,7 +673,8 @@ scrunchAllLibsTogetherInOneLibPerPlatformPerArchitecture()
     # library is now created in a single libtool invocation.
     echo "Linking all libraries for $PLATFORM_ARCHITECTURE_COMBO_NAME into a single library => $UNIVERSAL_LIBRARY_NAME"
     rm -f "$UNIVERSAL_LIBRARY_PATH"
-    (cd "$PLATFORM_ARCHITECTURE_COMBO_BUILD_PATH"; "$LIBTOOL" -static -o "$UNIVERSAL_LIBRARY_PATH" obj_*/*.o;)
+    "$LIBTOOL" -static -o "$UNIVERSAL_LIBRARY_PATH" obj_*/*.o
+    popd
 
     buildFramework "$FRAMEWORK_BUNDLE_PATH" "$UNIVERSAL_LIBRARY_PATH"
   done
