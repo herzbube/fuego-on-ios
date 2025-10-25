@@ -189,7 +189,7 @@ private:
         }
 
     private:
-        SgArray<std::auto_ptr<SgPointSet>,SG_MAX_SIZE + 1> m_allPoints;
+        SgArray<std::unique_ptr<SgPointSet>,SG_MAX_SIZE + 1> m_allPoints;
     };
 
     friend class SgSetIterator;

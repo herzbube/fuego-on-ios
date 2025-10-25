@@ -163,8 +163,8 @@ void SgUctSearch::Thread::Function::operator()()
 }
 
 SgUctSearch::Thread::Thread(SgUctSearch& search,
-                            std::auto_ptr<SgUctThreadState> state)
-    : m_state(state),
+                            std::unique_ptr<SgUctThreadState> state)
+    : m_state(std::move(state)),
       m_search(search),
       m_quit(false),
       m_threadReady(2),
@@ -429,9 +429,9 @@ void SgUctSearch::CreateThreads()
     DeleteThreads();
     for (unsigned int i = 0; i < m_numberThreads; ++i)
     {
-        std::auto_ptr<SgUctThreadState>
+        std::unique_ptr<SgUctThreadState>
         state(m_threadStateFactory->Create(i, *this));
-        shared_ptr<Thread> thread(new Thread(*this, state));
+        shared_ptr<Thread> thread(new Thread(*this, std::move(state)));
         m_threads.push_back(thread);
     }
     m_tree.CreateAllocators(m_numberThreads);

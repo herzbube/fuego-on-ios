@@ -17,7 +17,7 @@ using namespace boost::filesystem;
 string SgStringUtil::GetNativeFileName(const path& file)
 {
     path normalizedFile = file;
-    normalizedFile.normalize();
+    normalizedFile = normalizedFile.lexically_normal();
     # if defined(BOOST_FILESYSTEM_VERSION)
        SG_ASSERT (BOOST_FILESYSTEM_VERSION == 2 || BOOST_FILESYSTEM_VERSION == 3);
     #endif
