@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------
 /** @file SgSystem.h
-    System specific definitions for SmartGo.
+    System specific definitions for Fuego.
 
     This file contains system specific defines and includes.
     It always needs to be the first header file included by any .cpp file. */
@@ -78,8 +78,23 @@ public:
 
 #ifndef NDEBUG
 
+/** Help the Clang static analyzer use our assertions. 
+    See http://clang-analyzer.llvm.org/annotations.html#attr_analyzer_noreturn
+*/
+#ifndef CLANG_ANALYZER_NORETURN
+#if defined(__has_feature)
+#if __has_feature(attribute_analyzer_noreturn)
+#define CLANG_ANALYZER_NORETURN __attribute__((analyzer_noreturn))
+#endif
+#endif
+#endif
+#ifndef CLANG_ANALYZER_NORETURN
+#define CLANG_ANALYZER_NORETURN
+#endif
+
 /** System-specific action when an SG_ASSERT fails */
-void SgHandleAssertion(const char* expr, const char* file, int line);
+void SgHandleAssertion(const char* expr, const char* file, int line)
+ CLANG_ANALYZER_NORETURN;
 
 #define SG_ASSERT(x) \
     do \
@@ -91,7 +106,14 @@ void SgHandleAssertion(const char* expr, const char* file, int line);
 #define SG_ASSERT(x) (static_cast<void>(0))
 #endif
 
-#define SG_ASSERTRANGE(i, from, to) SG_ASSERT(i >= from && i <= to)
+/** Convenience macro analogous to BOOST_CHECK_EQUAL */
+#define SG_ASSERT_EQUAL(x, y) SG_ASSERT((x) == (y))
+
+/** Check that i is within a given range.
+    In many cases, doing two separate SG_ASSERT will be clearer 
+    and give more information in case of failure.
+*/
+#define SG_ASSERTRANGE(i, from, to) SG_ASSERT((i) >= (from) && (i) <= (to))
 
 //----------------------------------------------------------------------------
 
@@ -106,11 +128,6 @@ const bool SG_HEAVYCHECK = false;
 //----------------------------------------------------------------------------
 
 #ifdef _MSC_VER
-
-// Visual C++ already includes classes from the coming standard C++0x into
-// namespace std by default, which conflicts with classes from Boost
-// (e.g. shared_ptr). This can be disabled by defining the following macro.
-#define _HAS_CPP0X 0
 
 // Don't report Visual C++ warning 4355 ('this' : used in base member
 // initializer list) in default warning level 3. Storing a reference to

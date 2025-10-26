@@ -10,7 +10,6 @@
 #include <list>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_01.hpp>
-#include "SgArray.h"
 
 //----------------------------------------------------------------------------
 
@@ -29,13 +28,6 @@ public:
     SgRandom();
 
     ~SgRandom();
-
-    /** Return the global random number generator.
-        The global generator is stored as a static variable in this function
-        to ensure that it is initialized at first call if SgRandom is used
-        in global variables of other compilation units.
-        @note The global random number generator is not thread-safe. */
-    static SgRandom& Global();
 
     /** Set random seed for all existing and future instances of SgRandom.
         @param seed The seed. If negative, no seed will be set. If zero, a
@@ -125,6 +117,7 @@ private:
     boost::uniform_01<boost::mt19937, float> m_floatGenerator;
 
     void SetSeed();
+    static void SetGlobalRandomSeed();
 };
 
 inline float SgRandom::Float_01()

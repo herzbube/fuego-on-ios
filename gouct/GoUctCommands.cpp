@@ -23,6 +23,7 @@
 #include "GoUctUtil.h"
 #include "GoUtil.h"
 #include "SgException.h"
+#include "SgGtpUtil.h"
 #include "SgPointSetUtil.h"
 #include "SgRestorer.h"
 #include "SgUctTreeUtil.h"
@@ -104,37 +105,42 @@ string LiveGfxToString(GoUctLiveGfx mode)
     }
 }
 
-SgUctMoveSelect MoveSelectArg(const GtpCommand& cmd, size_t number)
+GoUctFeaturePriorType FeaturePriorArg(const GtpCommand& cmd, size_t number)
 {
     string arg = cmd.ArgToLower(number);
-    if (arg == "value")
-        return SG_UCTMOVESELECT_VALUE;
-    if (arg == "count")
-        return SG_UCTMOVESELECT_COUNT;
-    if (arg == "bound")
-        return SG_UCTMOVESELECT_BOUND;
-    if (arg == "estimate")
-        return SG_UCTMOVESELECT_ESTIMATE;
-    throw GtpFailure() << "unknown move select argument \"" << arg << '"';
+    if (arg == "none")
+        return PRIOR_NONE;
+    if (arg == "simple")
+        return PRIOR_SIMPLE;
+    if (arg == "scale_probabilities_linear")
+        return PRIOR_SCALE_PROBABILITIES_LINEAR;
+    if (arg == "top_n")
+        return PRIOR_TOP_N;
+    if (arg == "scale_nu_games")
+        return PRIOR_SCALE_NU_GAMES;
+    throw GtpFailure() << "unknown feature prior argument \"" << arg << '"';
 }
 
-string MoveSelectToString(SgUctMoveSelect moveSelect)
+string FeaturePriorToString(GoUctFeaturePriorType type)
 {
-    switch (moveSelect)
+    switch (type)
     {
-    case SG_UCTMOVESELECT_VALUE:
-        return "value";
-    case SG_UCTMOVESELECT_COUNT:
-        return "count";
-    case SG_UCTMOVESELECT_BOUND:
-        return "bound";
-    case SG_UCTMOVESELECT_ESTIMATE:
-        return "estimate";
-    default:
-        SG_ASSERT(false);
-        return "?";
+        case PRIOR_NONE:
+            return "none";
+        case PRIOR_SIMPLE:
+            return "simple";
+        case PRIOR_SCALE_PROBABILITIES_LINEAR:
+            return "scale_probabilities_linear";
+        case PRIOR_TOP_N:
+            return "top_n";
+        case PRIOR_SCALE_NU_GAMES:
+            return "scale_nu_games";
+        default:
+            SG_ASSERT(false);
+            return "?";
     }
 }
+
 
 GoUctGlobalSearchMode SearchModeArg(const GtpCommand& cmd, size_t number)
 {
@@ -192,7 +198,7 @@ std::vector<SgUctValue> KnowledgeThresholdFromString(const std::string& val)
     return v;
 }
 
-std::string KnowledgeTypeToString(KnowledgeType type)
+std::string GoKnowledgeTypeToString(GoKnowledgeType type)
 {
     switch (type)
     {
@@ -202,6 +208,8 @@ std::string KnowledgeTypeToString(KnowledgeType type)
             return "greenpeep";
         case KNOWLEDGE_RULEBASED:
             return "rulebased";
+        case KNOWLEDGE_FEATURES:
+            return "features";
         case KNOWLEDGE_BOTH:
             return "both";
         default:
@@ -210,7 +218,7 @@ std::string KnowledgeTypeToString(KnowledgeType type)
     }
 }
 
-KnowledgeType KnowledgeTypeArg(const GtpCommand& cmd, size_t number)
+GoKnowledgeType GoKnowledgeTypeArg(const GtpCommand& cmd, size_t number)
 {
     string arg = cmd.ArgToLower(number);
     if (arg == "none")
@@ -219,12 +227,14 @@ KnowledgeType KnowledgeTypeArg(const GtpCommand& cmd, size_t number)
         return KNOWLEDGE_GREENPEEP;
     if (arg == "rulebased")
         return KNOWLEDGE_RULEBASED;
+    if (arg == "features")
+        return KNOWLEDGE_FEATURES;
     if (arg == "both")
         return KNOWLEDGE_BOTH;
-    throw GtpFailure() << "unknown KnowledgeType argument \"" << arg << '"';
+    throw GtpFailure() << "unknown GoKnowledgeType argument \"" << arg << '"';
 }
 
-std::string CombinationTypeToString(GoUctKnowledgeCombinationType type)
+std::string CombinationTypeToString(GoKnowledgeCombinationType type)
 {
     switch (type)
     {
@@ -244,7 +254,7 @@ std::string CombinationTypeToString(GoUctKnowledgeCombinationType type)
     }
 }
 
-GoUctKnowledgeCombinationType CombinationTypeArg(const GtpCommand& cmd,
+GoKnowledgeCombinationType CombinationTypeArg(const GtpCommand& cmd,
                                                  size_t number)
 {
     string arg = cmd.ArgToLower(number);
@@ -303,7 +313,9 @@ void GoUctCommands::AddGoGuiAnalyzeCommands(GtpCommand& cmd)
         "gfx/Uct Ladder Knowledge/uct_ladder_knowledge\n"
         "none/Uct Max Memory/uct_max_memory %s\n"
         "plist/Uct Moves/uct_moves\n"
+        "none/Uct Node Info/uct_node_info\n"
         "param/Uct Param GlobalSearch/uct_param_globalsearch\n"
+        "param/Uct Param Feature Knowledge/uct_param_feature_knowledge\n"
         "param/Uct Param Policy/uct_param_policy\n"
         "param/Uct Param Player/uct_param_player\n"
         "param/Uct Param RootFilter/uct_param_rootfilter\n"
@@ -312,6 +324,7 @@ void GoUctCommands::AddGoGuiAnalyzeCommands(GtpCommand& cmd)
         "plist/Uct Patterns/uct_patterns\n"
         "pstring/Uct Policy Corrected Moves/uct_policy_corrected_moves\n"
         "pstring/Uct Policy Moves/uct_policy_moves\n"
+        "pstring/Uct Policy Moves Simple List/uct_policy_moves_simple\n"
         "gfx/Uct Prior Knowledge/uct_prior_knowledge\n"
         "sboard/Uct Rave Values/uct_rave_values\n"
         "plist/Uct Root Filter/uct_root_filter\n"
@@ -379,7 +392,7 @@ void GoUctCommands::CmdDefaultPolicy(GtpCommand& cmd)
 }
 
 /* Set Fuego to play in deterministic mode. srand must be set. 
-   number of threads =1 and m_checkInterval must not depend on clock. */
+   number of threads = 1 and m_checkInterval must not depend on clock. */
 void GoUctCommands::CmdDeterministicMode(GtpCommand& cmd)
 {
     cmd.CheckArgNone();
@@ -393,7 +406,7 @@ void GoUctCommands::CmdDeterministicMode(GtpCommand& cmd)
     "uct_param_player reuse_subtree false\n"
     "uct_param_search number_threads 1\n"
     "uct_param_search max_nodes 5000000\n";
-    if ( p.MaxGames() == std::numeric_limits<SgUctValue>::max())
+    if (p.MaxGames() == std::numeric_limits<SgUctValue>::max())
         SgWarning() << "Set Uct Param Player-> Max Games to finite "
                        "value in deterministic mode\n";
     p.SetIgnoreClock(true);
@@ -461,12 +474,12 @@ void GoUctCommands::CmdFinalStatusList(GtpCommand& cmd)
     // per line
     for (GoBlockIterator it(m_bd); it; ++it)
     {
-        if ((getDead && deadPoints.Contains(*it))
+        if (   (getDead && deadPoints.Contains(*it))
             || (! getDead && ! deadPoints.Contains(*it)))
         {
             for (GoBoard::StoneIterator it2(m_bd, *it); it2; ++it2)
                 cmd << SgWritePoint(*it2) << ' ';
-                cmd << '\n';
+            cmd << '\n';
         }
     }
 }
@@ -538,11 +551,59 @@ void GoUctCommands::CmdMaxMemory(GtpCommand& cmd)
 void GoUctCommands::CmdMoves(GtpCommand& cmd)
 {
     cmd.CheckArgNone();
-    vector<SgUctMoveInfo> moves;
+    std::vector<SgUctMoveInfo> moves;
     Search().GenerateAllMoves(moves);
     for (std::size_t i = 0; i < moves.size(); ++i)
         cmd << SgWritePoint(moves[i].m_move) << ' ';
     cmd << '\n';
+}
+
+/** Get and set GoUctGlobalSearch parameters.
+ */
+void GoUctCommands::CmdParamFeatureKnowledge(GtpCommand& cmd)
+{
+    cmd.CheckNuArgLessEqual(2);
+    GoUctFeatureKnowledgeParam& p = Player().m_featureParam;
+    if (cmd.NuArg() == 0)
+    {
+        // Boolean parameters first for better layout of GoGui parameter
+        // dialog, alphabetically otherwise
+        cmd
+        << "[bool] use_as_additive_predictor "
+        << p.m_useAsAdditivePredictor << '\n'
+        << "[list/none/simple/scale_probabilities_linear/top_n/"
+           "scale_nu_games] prior_knowledge_type "
+        << FeaturePriorToString(p.m_priorKnowledgeType) << '\n'
+        << "[float] additive_feature_multiplier "
+        << p.m_additiveFeatureMultiplier << '\n'
+        << "[float] additive_feature_sigmoid_factor "
+        << p.m_additiveFeatureMultiplier << '\n'
+        << "[float] prior_weight "
+        << p.m_priorKnowledgeWeight << '\n'
+        << "[int] top_n "
+        << p.m_topN << '\n'
+        ;
+    }
+    else if (cmd.NuArg() == 2)
+    {
+        string name = cmd.Arg(0);
+        if (name == "use_as_additive_predictor")
+            p.m_useAsAdditivePredictor = cmd.Arg<bool>(1);
+        else if (name == "prior_knowledge_type")
+            p.m_priorKnowledgeType = FeaturePriorArg(cmd, 1);
+        else if (name == "additive_feature_multiplier")
+            p.m_additiveFeatureMultiplier = cmd.Arg<float>(1);
+        else if (name == "additive_feature_sigmoid_factor")
+            p.m_additiveFeatureSigmoidFactor = cmd.Arg<float>(1);
+        else if (name == "prior_weight")
+            p.m_priorKnowledgeWeight = cmd.Arg<float>(1);
+        else if (name == "top_n")
+            p.m_topN = cmd.Arg<int>(1);
+        else
+            throw GtpFailure() << "unknown parameter: " << name;
+    }
+    else
+    throw GtpFailure() << "need 0 or 2 arguments";
 }
 
 /** Get and set GoUctGlobalSearch parameters.
@@ -572,11 +633,18 @@ void GoUctCommands::CmdParamGlobalSearch(GtpCommand& cmd)
             << "[bool] mercy_rule " << p.m_mercyRule << '\n'
             << "[bool] territory_statistics " << p.m_territoryStatistics
             << '\n'
+            << "[bool] use_default_prior_knowledge "
+            << p.m_useDefaultPriorKnowledge << '\n'
             << "[bool] use_tree_filter " << p.m_useTreeFilter << '\n'
+            << "[float] default_prior_weight " << p.m_defaultPriorWeight
+            << '\n'
+            << "[float] additive_knowledge_scale "
+            << p.m_additiveKnowledgeScale << '\n'
             << "[string] length_modification " << p.m_lengthModification
             << '\n'
             << "[string] score_modification " << p.m_scoreModification
-            << '\n';
+            << '\n'
+            ;
     }
     else if (cmd.NuArg() == 2)
     {
@@ -585,10 +653,16 @@ void GoUctCommands::CmdParamGlobalSearch(GtpCommand& cmd)
             s.SetGlobalSearchLiveGfx(cmd.Arg<bool>(1));
         else if (name == "mercy_rule")
             p.m_mercyRule = cmd.Arg<bool>(1);
-        else if (name == "use_tree_filter")
-            p.m_useTreeFilter = cmd.BoolArg(1);
         else if (name == "territory_statistics")
             p.m_territoryStatistics = cmd.Arg<bool>(1);
+        else if (name == "use_default_prior_knowledge")
+            p.m_useDefaultPriorKnowledge = cmd.Arg<bool>(1);
+        else if (name == "use_tree_filter")
+            p.m_useTreeFilter = cmd.Arg<bool>(1);
+        else if (name == "default_prior_weight")
+        p.m_defaultPriorWeight = cmd.Arg<float>(1);
+        else if (name == "additive_knowledge_scale")
+        p.m_additiveKnowledgeScale = cmd.Arg<float>(1);
         else if (name == "length_modification")
             p.m_lengthModification = cmd.Arg<SgUctValue>(1);
         else if (name == "score_modification")
@@ -663,7 +737,7 @@ void GoUctCommands::CmdParamPlayer(GtpCommand& cmd)
         else if (name == "use_root_filter")
             p.SetUseRootFilter(cmd.Arg<bool>(1));
         else if (name == "max_games")
-            p.SetMaxGames(cmd.ArgMin<SgUctValue>(1, SgUctValue(1)));
+            p.SetMaxGames(cmd.ArgMin<SgUctValue>(1, SgUctValue(0)));
         else if (name == "max_ponder_time")
             p.SetMaxPonderTime(cmd.ArgMin<SgUctValue>(1, 0));
         else if (name == "resign_min_games")
@@ -708,9 +782,10 @@ void GoUctCommands::CmdParamPolicy(GtpCommand& cmd)
             << "[bool] use_patterns_in_prior_knowledge " 
             << p.m_usePatternsInPriorKnowledge << '\n'
             << "[int] fillboard_tries " << p.m_fillboardTries << '\n'
-            << "[list/none/greenpeep/rulebased/both] knowledge_type "
-            << KnowledgeTypeToString(p.m_knowledgeType) << '\n'
-            << "[list/multiply/geometric_mean/add/average/max] combination_type "
+            << "[list/none/greenpeep/rulebased/features/both] knowledge_type "
+            << GoKnowledgeTypeToString(p.m_knowledgeType) << '\n'
+            << "[list/multiply/geometric_mean/add/average/max] "
+               "combination_type "
             << CombinationTypeToString(p.m_combinationType) << '\n'
             << "[float] pattern_gamma_threshold "
             << p.m_patternGammaThreshold << '\n'
@@ -731,7 +806,7 @@ void GoUctCommands::CmdParamPolicy(GtpCommand& cmd)
             p.m_fillboardTries = cmd.Arg<int>(1);
         else if (name == "knowledge_type")
         {
-            p.m_knowledgeType = KnowledgeTypeArg(cmd, 1);
+            p.m_knowledgeType = GoKnowledgeTypeArg(cmd, 1);
             Search().CreateThreads(); // need to regenerate all search states
         }
         else if (name == "combination_type")
@@ -837,7 +912,7 @@ void GoUctCommands::CmdParamTreeFilter(GtpCommand& cmd)
     This command is compatible with the GoGui analyze command type "param".
 
     Parameters:
-    @arg @c check_float_precision See GoUctSearch::CheckFloatPrecision
+    @arg @c check_float_precision See SgUctSearch::CheckFloatPrecision
     @arg @c keep_games See GoUctSearch::KeepGames
     @arg @c lock_free See SgUctSearch::LockFree
     @arg @c log_games See SgUctSearch::LogGames
@@ -877,9 +952,7 @@ void GoUctCommands::CmdParamSearch(GtpCommand& cmd)
             << s.UpdateMultiplePlayoutsAsSingle() << '\n'
             << "[bool] virtual_loss " << s.VirtualLoss() << '\n'
             << "[bool] weight_rave_updates " << s.WeightRaveUpdates() << '\n'
-            << "[float] additive_knowledge_weight " 
-            << s.AdditiveKnowledge().KnowledgeWeight() << '\n'
-            << "[string] additive_predictor_decay " 
+            << "[string] additive_predictor_decay "
             << s.AdditiveKnowledge().PredictorDecay() << '\n'
             << "[string] bias_term_constant " << s.BiasTermConstant() << '\n'
             << "[string] bias_term_frequency "
@@ -896,7 +969,7 @@ void GoUctCommands::CmdParamSearch(GtpCommand& cmd)
             << "[string] live_gfx_interval " << s.LiveGfxInterval() << '\n'
             << "[string] max_nodes " << s.MaxNodes() << '\n'
             << "[list/value/count/bound/estimate] move_select "
-            << MoveSelectToString(s.MoveSelect()) << '\n'
+            << SgGtpUtil::MoveSelectToString(s.MoveSelect()) << '\n'
             << "[string] number_threads " << s.NumberThreads() << '\n'
             << "[string] number_playouts " << s.NumberPlayouts() << '\n'
             << "[string] prune_min_count " << s.PruneMinCount() << '\n'
@@ -916,14 +989,12 @@ void GoUctCommands::CmdParamSearch(GtpCommand& cmd)
             throw GtpFailure() << "Command " 
                     << name << " is blocked in deterministic mode."; 
 
-        if (name == "additive_knowledge_weight")
-        	s.AdditiveKnowledge().SetKnowledgeWeight(cmd.Arg<float>(1));
-        else if (name == "additive_predictor_decay")
+        if (name == "additive_predictor_decay")
             s.AdditiveKnowledge().SetPredictorDecay(cmd.Arg<float>(1));
         else if (name == "bias_term_constant")
             s.SetBiasTermConstant(cmd.Arg<float>(1));
         else if (name == "bias_term_frequency")
-            s.SetBiasTermFrequency(cmd.IntArg(1));
+            s.SetBiasTermFrequency(cmd.Arg<int>(1));
         else if (name == "bias_term_depth")
             s.SetBiasTermDepth(cmd.Arg<size_t>(1));
         else if (name == "check_float_precision")
@@ -949,7 +1020,7 @@ void GoUctCommands::CmdParamSearch(GtpCommand& cmd)
         else if (name == "max_nodes")
             s.SetMaxNodes(cmd.ArgMin<size_t>(1, 1));
         else if (name == "move_select")
-            s.SetMoveSelect(MoveSelectArg(cmd, 1));
+            s.SetMoveSelect(SgGtpUtil::MoveSelectArg(cmd, 1));
         else if (name == "number_threads")
              s.SetNumberThreads(cmd.ArgMin<unsigned int>(1, 1));
         else if (name == "number_playouts")
@@ -1023,7 +1094,7 @@ void GoUctCommands::CmdPolicyCorrectedMoves(GtpCommand& cmd)
     See GoUctPlayoutPolicy::GetEquivalentBestMoves() <br>
     Arguments: none <br>
     Returns: Move type string followed by move list on a single line. */
-void GoUctCommands::CmdPolicyMoves(GtpCommand& cmd)
+void GoUctCommands::WritePolicyMoves(GtpCommand& cmd, bool writeGammas)
 {
     cmd.CheckArgNone();
     GoUctPlayoutPolicy<GoBoard> policy(m_bd, Player().m_playoutPolicyParam);
@@ -1041,14 +1112,76 @@ void GoUctCommands::CmdPolicyMoves(GtpCommand& cmd)
     if (policy.MoveType() == GOUCT_GAMMA_PATTERN)
     {
         cmd << ' ';
-        policy.GammaGenerator().WriteMovesAndGammas(cmd);
+        policy.GammaGenerator().WriteMovesAndGammas(cmd, writeGammas);
     }
+}
+
+/** Return equivalent best moves in playout policy.
+ See GoUctPlayoutPolicy::GetEquivalentBestMoves() <br>
+ Arguments: none <br>
+ Returns: Move type string followed by move list on a single line. 
+ For non-uniform generators, also write selection weights (gammas)
+*/
+void GoUctCommands::CmdPolicyMoves(GtpCommand& cmd)
+{
+    WritePolicyMoves(cmd, true); // do write move weights (gammas)
+}
+
+/** Return equivalent best moves in playout policy.
+ See GoUctPlayoutPolicy::GetEquivalentBestMoves() <br>
+ Arguments: none <br>
+ Returns: Move type string followed by move list on a single line. */
+void GoUctCommands::CmdPolicyMovesSimple(GtpCommand& cmd)
+{
+    WritePolicyMoves(cmd, false); // don't write move weights (gammas)
 }
 
 /** Show total prior knowledge */
 void GoUctCommands::CmdPriorKnowledge(GtpCommand& cmd)
 {
 	DisplayKnowledge(cmd, false);
+}
+
+namespace {
+
+bool CompareValue(const SgUctNode* p1, const SgUctNode* p2)
+{
+    return p1->PosCount() > p2->PosCount();
+}
+
+void WriteTopNMoves(std::ostream& stream, const SgUctTree& tree,
+                    const SgUctNode& node)
+{
+    if (! node.HasChildren())
+        return;
+    std::vector<const SgUctNode*> sorted;
+    for (SgUctChildIterator it(tree, node); it; ++it)
+        sorted.push_back(&(*it));
+    std::sort(sorted.begin(), sorted.end(), CompareValue);
+    const int n = std::min(6, static_cast<int>(sorted.size()));
+    stream << "Top " << n << " moves:\n";
+    for (int i = 0; i < n; ++i)
+    {
+        stream << i + 1 << ". " << *sorted[i] << '\n';
+    }
+}
+} // namespace
+
+void GoUctCommands::CmdNodeInfo(GtpCommand& cmd)
+{
+    cmd.CheckArgNone();
+    const GoUctSearch& search = Search();
+    const SgUctTree& tree = search.Tree();
+    std::vector<SgPoint> sequence;
+    if (search.BoardHistory().SequenceToCurrent(m_bd, sequence))
+    {
+        const SgUctNode* node =
+            SgUctTreeUtil::FindMatchingNode(tree, sequence);
+        cmd << *node;
+        WriteTopNMoves(cmd, tree, *node);
+    }
+    else
+        cmd << "Current position not in tree";
 }
 
 /** Show RAVE values of last search at root position.
@@ -1231,13 +1364,13 @@ void GoUctCommands::CmdStatSearch(GtpCommand& cmd)
 
 namespace {
 
-    // map from range [0..1] to [-1..+1]
+    /** Map mean from range [0..1] to [-1..+1] */
     SgUctValue MapMeanToTerritoryEstimate(SgUctValue mean)
     {
         return mean * 2 - 1;
     }
     
-    // map into one of: Black (+1), White (-1), neutral (0)
+    /** Map mean into one of: Black (+1), White (-1), neutral (0) */
     SgUctValue MapMeanToLikelyTerritory(SgUctValue mean)
     {
         const SgUctValue threshold = 0.25f;
@@ -1254,7 +1387,7 @@ SgUctValue GoUctCommands::DisplayTerritory(GtpCommand& cmd,
     cmd.CheckArgNone();
     SgPointArray<SgUctStatistics> territoryStatistics
         = ThreadState(0).m_territoryStatistics;
-    SgPointArray<SgUctValue> array;
+    SgPointArray<SgUctValue> array(0);
     SgUctValue sum = SgUctValue(0);
     for (GoBoard::Iterator it(m_bd); it; ++it)
     {
@@ -1354,7 +1487,7 @@ void GoUctCommands::DisplayKnowledge(GtpCommand& cmd,
     GoUctGlobalSearchState<GoUctPlayoutPolicy<GoUctBoard> >& state
         = ThreadState(0);
     state.StartSearch(); // Updates thread state board
-    vector<SgUctMoveInfo> moves;
+    std::vector<SgUctMoveInfo> moves;
     SgUctProvenType ignoreProvenType;
     state.GenerateAllMoves(count, moves, ignoreProvenType);
     DisplayMoveInfo(cmd, moves, additiveKnowledge);
@@ -1365,7 +1498,7 @@ void GoUctCommands::DisplayKnowledge(GtpCommand& cmd,
     gfx and shows the values as influence and the
     counts as labels. */
 void GoUctCommands::DisplayMoveInfo(GtpCommand& cmd, 
-                                    const vector<SgUctMoveInfo>& moves,
+                                    const std::vector<SgUctMoveInfo>& moves,
                                     bool additiveKnowledge)
 {
     cmd << "INFLUENCE ";
@@ -1375,8 +1508,8 @@ void GoUctCommands::DisplayMoveInfo(GtpCommand& cmd,
         SgUctValue value = additiveKnowledge ? moves[i].m_predictorValue
                            : moves[i].m_value;
         value = SgUctSearch::InverseEval(value);
-        SgUctValue count = moves[i].m_count;
-        if (count > 0)
+        const bool show = additiveKnowledge || (moves[i].m_count > 0);
+        if (show)
         {
             SgUctValue scaledValue = value * 2 - 1;
             if (m_bd.ToPlay() != SG_BLACK)
@@ -1384,13 +1517,16 @@ void GoUctCommands::DisplayMoveInfo(GtpCommand& cmd,
             cmd << ' ' << SgWritePoint(move) << ' ' << scaledValue;
         }
     }
-    cmd << "\nLABEL ";
-    for (size_t i = 0; i < moves.size(); ++i)
+    if (! additiveKnowledge) // no count for additive
     {
-        SgMove move = moves[i].m_move;
-        SgUctValue count = moves[i].m_count;
-        if (count > 0)
-            cmd << ' ' << SgWritePoint(move) << ' ' << count;
+        cmd << "\nLABEL ";
+        for (size_t i = 0; i < moves.size(); ++i)
+        {
+            SgMove move = moves[i].m_move;
+            const SgUctValue count = moves[i].m_count;
+            if (count > 0)
+                cmd << ' ' << SgWritePoint(move) << ' ' << count;
+        }
     }
     cmd << '\n';
 }
@@ -1405,7 +1541,7 @@ SgPointSet GoUctCommands::DoFinalStatusSearch()
         // Everything is alive if end position and Tromp-Taylor rules
         return deadStones;
 
-    const size_t MAX_GAMES = 10000;
+    const SgUctValue MAX_GAMES = 10000;
     SgDebug() << "GoUctCommands::DoFinalStatusSearch: doing a search with "
               << MAX_GAMES << " games to determine final status\n";
     GoUctGlobalSearch<GoUctPlayoutPolicy<GoUctBoard>,
@@ -1428,7 +1564,7 @@ SgPointSet GoUctCommands::DoFinalStatusSearch()
     m_player->UpdateSubscriber();
     if (nuUndoPass > 0)
         SgDebug() << "Undoing " << nuUndoPass << " passes\n";
-    vector<SgMove> sequence;
+    std::vector<SgMove> sequence;
     search.Search(MAX_GAMES, std::numeric_limits<double>::max(), sequence);
     SgDebug() << SgWriteLabel("Sequence")
               << SgWritePointList(sequence, "", false);
@@ -1523,6 +1659,9 @@ void GoUctCommands::Register(GtpEngine& e)
     Register(e, "uct_ladder_knowledge", &GoUctCommands::CmdLadderKnowledge);
     Register(e, "uct_max_memory", &GoUctCommands::CmdMaxMemory);
     Register(e, "uct_moves", &GoUctCommands::CmdMoves);
+    Register(e, "uct_node_info", &GoUctCommands::CmdNodeInfo);
+    Register(e, "uct_param_feature_knowledge",
+             &GoUctCommands::CmdParamFeatureKnowledge);
     Register(e, "uct_param_globalsearch",
              &GoUctCommands::CmdParamGlobalSearch);
     Register(e, "uct_param_policy", &GoUctCommands::CmdParamPolicy);
@@ -1534,6 +1673,8 @@ void GoUctCommands::Register(GtpEngine& e)
     Register(e, "uct_policy_corrected_moves",
              &GoUctCommands::CmdPolicyCorrectedMoves);
     Register(e, "uct_policy_moves", &GoUctCommands::CmdPolicyMoves);
+    Register(e, "uct_policy_moves_simple",
+             &GoUctCommands::CmdPolicyMovesSimple);
     Register(e, "uct_prior_knowledge", &GoUctCommands::CmdPriorKnowledge);
     Register(e, "uct_rave_values", &GoUctCommands::CmdRaveValues);
     Register(e, "uct_root_filter", &GoUctCommands::CmdRootFilter);

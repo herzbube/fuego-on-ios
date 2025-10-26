@@ -13,6 +13,7 @@
 #include "GoPlayer.h"
 #include "GoTimeControl.h"
 #include "GoUctDefaultMoveFilter.h"
+#include "GoUctFeatureKnowledge.h"
 #include "GoUctGlobalSearch.h"
 #include "GoUctObjectWithSearch.h"
 #include "GoUctPlayoutPolicy.h"
@@ -78,6 +79,8 @@ public:
     GoUctDefaultMoveFilterParam m_rootFilterParam;
 
     GoUctDefaultMoveFilterParam m_treeFilterParam;
+
+    GoUctFeatureKnowledgeParam m_featureParam;
 
     /** Constructor.
         @param bd The board. */
@@ -559,11 +562,12 @@ GoUctPlayer<SEARCH, THREAD>::GoUctPlayer(const GoBoard& bd)
       m_maxGames(std::numeric_limits<SgUctValue>::max()),
       m_resignMinGames(5000),
       m_maxPonderTime(300),
-      m_search(Board(),
-               new GoUctPlayoutPolicyFactory<GoUctBoard>(
-                                                 m_playoutPolicyParam),
-               m_playoutPolicyParam, m_treeFilterParam),
-      
+      m_search(
+           Board(),
+           new GoUctPlayoutPolicyFactory<GoUctBoard>(m_playoutPolicyParam),
+           m_playoutPolicyParam,
+           m_treeFilterParam,
+           m_featureParam),
       m_timeControl(Board()),
       m_rootFilter(new GoUctDefaultMoveFilter(Board(), m_rootFilterParam)),
       m_mpiSynchronizer(SgMpiNullSynchronizer::Create()),
@@ -659,6 +663,8 @@ inline bool AllowFillinMove(const GoBoard& bd, SgPoint move,
     all points are safe as determined by territory statistics.
     @param maxGames Maximum simulations for the search
     @param maxTime Maximum time for the search
+    @param searchMove A proposed move that is checked if early pass 
+           is possible. If SG_PASS, the engine tries to find its own move.
     @param[out] move The move to play (pass or a neutral point to fill)
     @return @c true, if still winning and everything is safe after a pass */
 template <class SEARCH, class THREAD>
@@ -723,7 +729,7 @@ bool GoUctPlayer<SEARCH, THREAD>::DoEarlyPassSearch(SgUctValue maxGames,
     {
         for (GoBoard::Iterator it(bd); it; ++it)
         {
-            SgUctValue mean = territory[*it].Mean();
+            const SgUctValue mean = territory[*it].Mean();
             if (  mean > 1 - m_sureWinThreshold
                && mean < m_sureWinThreshold)
             {
@@ -732,10 +738,10 @@ bool GoUctPlayer<SEARCH, THREAD>::DoEarlyPassSearch(SgUctValue maxGames,
                 bool isSafeOppAdj = false;
                 for (GoNbIterator it2(bd, *it); it2; ++it2)
                 {
-                    SgUctValue mean = territory[*it2].Mean();
-                    if (mean > m_sureWinThreshold)
+                    const SgUctValue nbMean = territory[*it2].Mean();
+                    if (nbMean > m_sureWinThreshold)
                         isSafeToPlayAdj = true;
-                    if (mean < 1 - m_sureWinThreshold)
+                    if (nbMean < 1 - m_sureWinThreshold)
                         isSafeOppAdj = true;
                 }
                 if (isSafeToPlayAdj && isSafeOppAdj)
@@ -754,7 +760,8 @@ bool GoUctPlayer<SEARCH, THREAD>::DoEarlyPassSearch(SgUctValue maxGames,
                 else
                 {
                     SgDebug()
-                    << "GoUctPlayer: no early pass possible (unsafe point)\n";
+                    << "GoUctPlayer: no early pass possible (unsafe point "
+                    << SgWritePoint(*it) << ")\n";
                     earlyPassPossible = false;
                     break;
                 }
@@ -893,23 +900,20 @@ void GoUctPlayer<SEARCH, THREAD>::FindInitTree(SgUctTree& initTree,
                                                double maxTime)
 {
     Board().SetToPlay(toPlay);
-    GoBoardHistory currentPosition;
-    currentPosition.SetFromBoard(Board());
     std::vector<SgPoint> sequence;
-    if (! currentPosition.IsAlternatePlayFollowUpOf(m_search.BoardHistory(),
-                                                    sequence))
+    if (! m_search.BoardHistory().SequenceToCurrent(Board(), sequence))
     {
         SgDebug() << "GoUctPlayer: No tree to reuse found\n";
         return;
     }
     SgUctTreeUtil::ExtractSubtree(m_search.Tree(), initTree, sequence, true,
                                   maxTime, m_search.PruneMinCount());
-    size_t initTreeNodes = initTree.NuNodes();
-    size_t oldTreeNodes = m_search.Tree().NuNodes();
+    const size_t initTreeNodes = initTree.NuNodes();
+    const size_t oldTreeNodes = m_search.Tree().NuNodes();
     if (oldTreeNodes > 1 && initTreeNodes >= 1)
     {
-        float reuse = float(initTreeNodes) / float(oldTreeNodes);
-        int reusePercent = static_cast<int>(100 * reuse);
+        const float reuse = float(initTreeNodes) / float(oldTreeNodes);
+        const int reusePercent = static_cast<int>(100 * reuse);
         SgDebug() << "GoUctPlayer: Reusing " << initTreeNodes
                   << " nodes (" << reusePercent << "%)\n";
 
@@ -965,19 +969,13 @@ SgPoint GoUctPlayer<SEARCH, THREAD>::GenMove(const SgTimeRecord& time,
         else
             maxTime = m_timeControl.TimeForCurrentMove(time,
                                                        ! m_writeDebugOutput);
-        SgUctValue value;
         if (m_searchMode == GOUCT_SEARCHMODE_ONEPLY)
         {
             m_search.SetToPlay(toPlay);
-            move = m_search.SearchOnePly(m_maxGames, maxTime, value);
+            SgUctValue ignoreValue;
+            move = m_search.SearchOnePly(m_maxGames, maxTime, ignoreValue);
             if (move == SG_NULLMOVE)
                 move = SG_PASS;
-            else
-            {
-                SgUctValue value = SgUctValue(m_search.Tree().Root().Mean());
-                if (value < m_resignThreshold)
-                    move = SG_RESIGN;
-            }
         }
         else
         {

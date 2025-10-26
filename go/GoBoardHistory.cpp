@@ -19,8 +19,9 @@ void GoBoardHistory::SetFromBoard(const GoBoard& bd)
     m_toPlay = bd.ToPlay();
 }
 
-bool GoBoardHistory::IsAlternatePlayFollowUpOf(const GoBoardHistory& other,
-                                               std::vector<SgPoint>& sequence)
+bool GoBoardHistory::
+IsAlternatePlayFollowUpOf(const GoBoardHistory& other,
+                          std::vector<SgPoint>& sequence) const
 {
     if (m_boardSize != other.m_boardSize
         || m_rules != other.m_rules
@@ -43,6 +44,15 @@ bool GoBoardHistory::IsAlternatePlayFollowUpOf(const GoBoardHistory& other,
     if (toPlay != m_toPlay)
         return false;
     return true;
+}
+
+bool
+GoBoardHistory::SequenceToCurrent(const GoBoard& bd,
+                                  std::vector<SgPoint>& sequence) const
+{
+    GoBoardHistory currentPosition;
+    currentPosition.SetFromBoard(bd);
+    return currentPosition.IsAlternatePlayFollowUpOf(*this, sequence);
 }
 
 //----------------------------------------------------------------------------

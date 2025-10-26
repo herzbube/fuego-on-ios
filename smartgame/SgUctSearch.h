@@ -20,6 +20,7 @@
 #include "SgBWArray.h"
 #include "SgTimer.h"
 #include "SgUctTree.h"
+#include "SgUctValue.h"
 #include "SgMpiSynchronizer.h"
 
 #define SG_UCTFASTLOG 1
@@ -265,7 +266,6 @@ enum SgUctMoveSelect
     instances of this class in different threads (after construction, the
     constructor does not need to be thread safe). Beware not to use classes
     that are not thread-safe, because they use global variables
-    (e.g. SgRandom::Global())
     @note Technically it is possible to use a non-thread safe implementation
     of subclasses, as long as the search is run with only one thread.
     @ingroup sguctgroup */
@@ -662,7 +662,8 @@ public:
 
     /** Constant c in the bias term.
         This constant corresponds to 2 C_p in the original UCT paper.
-        The default value is 0.7, which works well in 9x9 Go. */
+        The default value is 0.7, but must be tuned for each game. 
+        In Fuego Go, this constant is currently 0 and RAVE is used. */
     float BiasTermConstant() const;
 
     /** See BiasTermConstant() */
@@ -1116,7 +1117,7 @@ private:
 
     void ApplyRootFilter(std::vector<SgUctMoveInfo>& moves);
 
-    void PropagateProvenStatus(const vector<const SgUctNode*>& nodes);
+    void PropagateProvenStatus(const std::vector<const SgUctNode*>& nodes);
 
     bool CheckAbortSearch(SgUctThreadState& state);
 
@@ -1230,12 +1231,12 @@ inline SgUctValue SgUctSearch::FirstPlayUrgency() const
 
 inline SgUctValue SgUctSearch::InverseEval(SgUctValue eval)
 {
-    return (1 - eval);
+    return SgUctValueUtil::InverseValue(eval);
 }
 
 inline SgUctValue SgUctSearch::InverseEstimate(SgUctValue eval)
 {
-    return (1 - eval);
+    return SgUctValueUtil::InverseValue(eval);
 }
 
 inline bool SgUctSearch::IsPartialMove(SgMove move) const

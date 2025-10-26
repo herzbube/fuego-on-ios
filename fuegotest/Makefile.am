@@ -1,4 +1,5 @@
 bin_PROGRAMS = fuego_test
+AM_CXXFLAGS = $(PTHREAD_CFLAGS)
 
 fuego_test_SOURCES = \
 FuegoTestEngine.cpp \
@@ -18,7 +19,8 @@ fuego_test_LDADD = \
 $(BOOST_PROGRAM_OPTIONS_LIB) \
 $(BOOST_SYSTEM_LIB) \
 $(BOOST_FILESYSTEM_LIB) \
-$(BOOST_THREAD_LIB)
+$(BOOST_THREAD_LIB) \
+$(PTHREAD_LIBS)
 
 fuego_test_DEPENDENCIES = \
 ../gouct/libfuego_gouct.a \

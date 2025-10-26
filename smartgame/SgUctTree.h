@@ -60,6 +60,9 @@ struct SgUctMoveInfo
 
     SgUctMoveInfo(SgMove move, SgUctValue value, SgUctValue count,
                SgUctValue raveValue, SgUctValue raveCount);
+
+    void Add(const SgUctValue mean, const SgUctValue count);
+
 };
 
 std::ostream& operator<<(std::ostream& stream, const SgUctMoveInfo& info);
@@ -92,6 +95,19 @@ inline SgUctMoveInfo::SgUctMoveInfo(SgMove move, SgUctValue value, SgUctValue co
       m_predictorValue(0.0)
 { }
 
+inline void SgUctMoveInfo::Add(const SgUctValue mean, const SgUctValue count)
+{
+    m_count += count;
+    SgUctValue v1 = SgUctValueUtil::InverseValue(m_value);
+    SgUctValue v2 = mean;
+    v2 -= v1; // same formula for weighted mean as in SgStatisticsBase::Add
+    v1 += (v2 * count) / m_count;
+    m_value = SgUctValueUtil::InverseValue(v1);
+
+    m_raveCount = m_count;
+    m_raveValue = v1;
+}
+
 //----------------------------------------------------------------------------
 
 /** Types of proven nodes. */
@@ -107,6 +123,8 @@ typedef enum
     SG_PROVEN_LOSS
 
 } SgUctProvenType;
+
+std::ostream& operator<<(std::ostream& stream, const SgUctProvenType& type);
 
 //----------------------------------------------------------------------------
 
@@ -204,8 +222,11 @@ public:
         and number of children). */
     void CopyDataFrom(const SgUctNode& node);
 
+    /** Check if node has a move (is not root node) */
+    bool HasMove() const;
+
     /** Get move.
-        Requires: Node has a move (is not root node) */
+        Requires: HasMove() */
     SgMove Move() const;
 
     /** Get RAVE count.
@@ -282,6 +303,11 @@ private:
     volatile int m_virtualLossCount;
 };
 
+//----------------------------------------------------------------------------
+
+std::ostream& operator<<(std::ostream& stream, const SgUctNode& node);
+
+//----------------------------------------------------------------------------
 inline SgUctNode::SgUctNode(const SgUctMoveInfo& info)
     : m_statistics(info.m_value, info.m_count),
       m_nuChildren(0),
@@ -445,6 +471,11 @@ inline void SgUctNode::DecPosCount(SgUctValue count)
     }
 }
 
+inline bool SgUctNode::HasMove() const
+{
+    return m_move != SG_NULLMOVE;
+}
+
 inline void SgUctNode::InitializeValue(SgUctValue value, SgUctValue count)
 {
     m_statistics.Initialize(value, count);
@@ -462,7 +493,7 @@ inline SgUctValue SgUctNode::Mean() const
 
 inline SgMove SgUctNode::Move() const
 {
-    SG_ASSERT(m_move != SG_NULLMOVE);
+    SG_ASSERT(HasMove());
     return m_move;
 }
 
@@ -858,7 +889,7 @@ public:
         are pruned, children missing from moves are added as leaves.
         Requires: Allocator(allocatorId).HasCapacity(moves.size()) */
     void SetChildren(std::size_t allocatorId, const SgUctNode& node,
-                     const vector<SgMove>& moves);
+                     const std::vector<SgMove>& moves);
 
     /** @name Functions for debugging */
     // @{

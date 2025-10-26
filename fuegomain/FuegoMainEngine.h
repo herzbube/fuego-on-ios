@@ -7,8 +7,9 @@
 
 #include "GoGtpEngine.h"
 #include "GoSafetyCommands.h"
-#include "GoUctCommands.h"
 #include "GoUctBookBuilderCommands.h"
+#include "GoUctCommands.h"
+#include "GoUctFeatureCommands.h"
 
 //----------------------------------------------------------------------------
 
@@ -46,6 +47,9 @@ private:
     GoUctBookBuilderCommands<PlayerType> m_autoBookCommands;
 
     GoSafetyCommands m_safetyCommands;
+
+    GoUctFeatureCommands m_feCommands;
+
 };
 
 //----------------------------------------------------------------------------

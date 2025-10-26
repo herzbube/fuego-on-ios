@@ -380,9 +380,9 @@ void GoSafetyUtil::FindDameAndUnsurroundablePoints(const GoBoard& bd,
     {
         SgPoint p(*it);
         bool isDame = true;
-        for (GoNbIterator it(bd, p); it; ++it)
+        for (GoNbIterator nit(bd, p); nit; ++nit)
         {
-            SgPoint nb(*it);
+            SgPoint nb(*nit);
             if (empty[nb] && ! unsurroundable->Contains(nb))
             {
             // can use unsurroundable instead of smaller set maybeDame
@@ -546,11 +546,8 @@ bool GoSafetyUtil::ExtendedIsTerritory(const GoBoard& board,
     return IsTerritory(board, pts, safe, color, &reason);
 }
                         
-SgEmptyBlackWhite GoSafetyUtil::GetWinner(const GoBoard& constBd)
+SgEmptyBlackWhite GoSafetyUtil::GetWinner(const GoBoard& bd)
 {
-    GoModBoard modBoard(constBd); 
-    // todo: safety solvers should take const board.
-    GoBoard& bd = modBoard.Board();
     GoRegionBoard regionAttachment(bd);
     GoSafetySolver solver(bd, &regionAttachment);
     SgBWSet safe;
@@ -610,9 +607,9 @@ void GoSafetyUtil::WriteStatistics(const std::string& heading,
     int totalBlocks = 0;
     int safeBlocks = 0;  
 
-    for (SgBWIterator it; it; ++it)
+    for (SgBWIterator cit; cit; ++cit)
     {
-        SgBlackWhite color(*it);
+        SgBlackWhite color(*cit);
         for (SgVectorIteratorOf<GoRegion> it(regions->AllRegions(color));
                                            it; ++it)
         {

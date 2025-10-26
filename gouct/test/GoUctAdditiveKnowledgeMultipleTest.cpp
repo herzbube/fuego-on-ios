@@ -21,7 +21,7 @@ namespace {
 
 //----------------------------------------------------------------------------
 
-class Knowledge1 : public GoUctAdditiveKnowledgeStdProb
+class Knowledge1 : public GoAdditiveKnowledgeStdProb
 {
 public:
     Knowledge1(const GoBoard& bd);
@@ -31,7 +31,7 @@ public:
 };
 
 Knowledge1::Knowledge1(const GoBoard& bd)
-: GoUctAdditiveKnowledgeStdProb(bd)
+: GoAdditiveKnowledgeStdProb(bd)
 { }
 
 void Knowledge1::ProcessPosition(std::vector<SgUctMoveInfo>& moves)
@@ -43,7 +43,7 @@ void Knowledge1::ProcessPosition(std::vector<SgUctMoveInfo>& moves)
     
 //----------------------------------------------------------------------------
 
-class Knowledge2 : public GoUctAdditiveKnowledgeStdProb
+class Knowledge2 : public GoAdditiveKnowledgeStdProb
 {
 public:
     Knowledge2(const GoBoard& bd);
@@ -53,7 +53,7 @@ public:
 };
 
 Knowledge2::Knowledge2(const GoBoard& bd)
-: GoUctAdditiveKnowledgeStdProb(bd)
+: GoAdditiveKnowledgeStdProb(bd)
 { }
 
 void Knowledge2::ProcessPosition(std::vector<SgUctMoveInfo>& moves)
@@ -75,12 +75,11 @@ void Init(std::vector<SgUctMoveInfo>& moves, const GoBoard& bd)
     
 void TestType(const GoBoard& bd,
               std::vector<SgUctMoveInfo>& moves,
-              GoUctKnowledgeCombinationType combinationType,
+              GoKnowledgeCombinationType combinationType,
               int nuKnowledge)
 {
     const SgUctValue minimum = 0.0001f;
-    const SgUctValue scale = 0.03f;
-    GoUctAdditiveKnowledgeMultiple m(bd, scale, minimum, combinationType);
+    GoUctAdditiveKnowledgeMultiple m(bd, minimum, combinationType);
     Knowledge1* k1 = new Knowledge1(bd);
     m.AddKnowledge(k1);
     if (nuKnowledge >1)
