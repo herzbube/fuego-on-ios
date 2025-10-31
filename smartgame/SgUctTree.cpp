@@ -64,6 +64,49 @@ std::ostream& operator<<(std::ostream& stream, const SgUctMoveInfo& info)
            ;
     return stream;
 }
+//----------------------------------------------------------------------------
+
+std::ostream& operator<<(std::ostream& stream, const SgUctNode& node)
+{
+    if (node.HasMove())
+        stream << SgWritePoint(node.Move());
+    else
+        stream << "Root (no move)";
+    stream << " mean = ";
+    if (node.HasMean())
+        stream << node.Mean();
+    else
+        stream << "undefined";
+    stream  << " pos-count = " << node.PosCount()
+            << " move-count = " << node.MoveCount()
+            << " rave-value = ";
+    if (node.HasRaveValue())
+        stream << node.RaveValue();
+    else
+        stream << "undefined";
+    stream  << " predictor-value = " << node.PredictorValue()
+            << " Virtual-Loss-Count = " << node.VirtualLossCount()
+            << " Knowledge-Count = " << node.KnowledgeCount()
+            << ' ' << node.ProvenType()
+            << '\n';
+    return stream;
+}
+
+//----------------------------------------------------------------------------
+
+std::ostream& operator<<(std::ostream& stream, const SgUctProvenType& type)
+{
+    static const char* s_string[3] =
+    {
+        "not proven",
+        "proven win",
+        "proven loss"
+    };
+    SG_ASSERT(type >= SG_NOT_PROVEN);
+    SG_ASSERT(type <= SG_PROVEN_LOSS);
+    stream << s_string[type];
+    return stream;
+}
 
 //----------------------------------------------------------------------------
 
@@ -72,8 +115,9 @@ SgUctTree::SgUctTree()
       m_root(SG_NULLMOVE)
 { }
 
-void SgUctTree::ApplyFilter(std::size_t allocatorId, const SgUctNode& node,
-                            const vector<SgMove>& rootFilter)
+void SgUctTree::ApplyFilter(std::size_t allocatorId,
+                            const SgUctNode& node,
+                            const std::vector<SgMove>& rootFilter)
 {
     SG_ASSERT(Contains(node));
     SG_ASSERT(Allocator(allocatorId).HasCapacity(node.NuChildren()));
@@ -110,7 +154,7 @@ void SgUctTree::ApplyFilter(std::size_t allocatorId, const SgUctNode& node,
 }
 
 void SgUctTree::SetChildren(std::size_t allocatorId, const SgUctNode& node,
-                            const vector<SgMove>& moves)
+                            const std::vector<SgMove>& moves)
 {
     SG_ASSERT(Contains(node));
     SG_ASSERT(Allocator(allocatorId).HasCapacity(moves.size()));

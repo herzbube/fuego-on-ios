@@ -14,6 +14,7 @@
 #include "SgWrite.h"
 
 //----------------------------------------------------------------------------
+namespace {
 inline bool IsEmpty2x3Box(const GoBoard& bd, SgPoint p)
 {
     SG_ASSERT (bd.Line(p) == 1);
@@ -23,7 +24,7 @@ inline bool IsEmpty2x3Box(const GoBoard& bd, SgPoint p)
 
 inline bool IsEmptyOrInCorner(const GoBoard& bd, SgPoint p, int direction)
 {
-    return bd.Pos(p + direction) < 3
+    return bd.Pos(p + direction) == 1
         || IsEmpty2x3Box(bd, p + direction);
 }
 
@@ -33,7 +34,7 @@ bool IsEmptyEdge(const GoBoard& bd, SgPoint p)
 {
     SG_ASSERT (bd.IsEmpty(p));
     SG_ASSERT (bd.Line(p) == 1);
-    if (bd.Num8EmptyNeighbors(p) < 5)
+    if (bd.Num8EmptyNeighbors(p) < 5 && bd.Pos(p) > 1)
         return false;
     const SgPoint pUp = p + bd.Up(p);
     SG_ASSERT(bd.Line(pUp) == 2);
@@ -57,6 +58,17 @@ bool IsEmptyEdge(const GoBoard& bd, SgPoint p)
     }
 }
 
+bool LibertiesAreDiagonal(const GoBoard& bd, SgPoint anchor)
+    {
+        SG_ASSERT(bd.NumLiberties(anchor) == 2);
+        GoBoard::LibertyIterator it(bd, anchor);
+        SgPoint lib1 = *it;
+        ++it;
+        SG_ASSERT(it);
+        return SgPointUtil::AreDiagonal(lib1, *it);
+    }
+
+} // namespace
 //----------------------------------------------------------------------------
 
 GoUctDefaultMoveFilterParam::GoUctDefaultMoveFilterParam()
@@ -74,64 +86,64 @@ GoUctDefaultMoveFilter::GoUctDefaultMoveFilter(const GoBoard& bd, const GoUctDef
       m_param(param)
 { }
 
-vector<SgPoint> GoUctDefaultMoveFilter::Get()
+std::vector<SgPoint> GoUctDefaultMoveFilter::Get()
 {
-    vector<SgPoint> rootFilter;
-    SgBlackWhite toPlay = m_bd.ToPlay();
-    SgBlackWhite opp = SgOppBW(toPlay);
+    std::vector<SgPoint> rootFilter;
+    const SgBlackWhite toPlay = m_bd.ToPlay();
+    const SgBlackWhite opp = SgOppBW(toPlay);
 
     // Safe territory
     if (m_param.m_checkSafety)
     {
-        GoModBoard modBoard(m_bd);
-        GoBoard& bd = modBoard.Board();
         SgBWSet alternateSafe;
-        bool isAllAlternateSafe = false;
         // Alternate safety is used to prune moves only in opponent territory
         // and only if everything is alive under alternate play. This ensures that
         // capturing moves that are not liberties of dead blocks and ko threats
         // will not be pruned. This alternate safety pruning is not going to
         // improve or worsen playing strength, but may cause earlier passes,
         // which is nice in games against humans
-        GoSafetySolver safetySolver(bd);
+        GoSafetySolver safetySolver(m_bd);
         safetySolver.FindSafePoints(&alternateSafe);
-        isAllAlternateSafe = (alternateSafe.Both() == bd.AllPoints());
 
         // Benson solver guarantees that capturing moves of dead blocks are
         // liberties of the dead blocks and that no move in Benson safe territory
         // is a ko threat
-        GoBensonSolver bensonSolver(bd);
+        GoBensonSolver bensonSolver(m_bd);
         SgBWSet unconditionalSafe;
         bensonSolver.FindSafePoints(&unconditionalSafe);
 
-        for (GoBoard::Iterator it(bd); it; ++it)
+        for (GoBoard::Iterator it(m_bd); it; ++it)
         {
-            SgPoint p = *it;
+            const SgPoint p = *it;
             if (m_bd.IsLegal(p))
             {
                 bool isUnconditionalSafe = unconditionalSafe[toPlay].Contains(p);
                 bool isUnconditionalSafeOpp = unconditionalSafe[opp].Contains(p);
                 bool isAlternateSafeOpp = alternateSafe[opp].Contains(p);
-                bool hasOppNeighbors = bd.HasNeighbors(p, opp);
+                bool hasOppNeighbors = m_bd.HasNeighbors(p, opp);
                 // Always generate capturing moves in own safe territory, even
                 // if current rules do no use CaptureDead(), because the UCT
                 // player always scores with Tromp-Taylor after two passes in the
                 // in-tree phase
-                if (  (isAllAlternateSafe && isAlternateSafeOpp)
+                // if (  (isAllAlternateSafe && isAlternateSafeOpp)
+                if (  isAlternateSafeOpp
                    || isUnconditionalSafeOpp
                    || (isUnconditionalSafe && ! hasOppNeighbors)
+                   || (  alternateSafe[toPlay].Contains(p)
+                      && ! safetySolver.PotentialCaptureMove(p, toPlay)
+                      )
                    )
                     rootFilter.push_back(p);
             }
         }
     }
 
-    // Loosing ladder defense moves
+    // Losing ladder defense moves
     if (m_param.m_checkLadders)
     {
         for (GoBlockIterator it(m_bd); it; ++it)
         {
-            SgPoint p = *it;
+            const SgPoint p = *it;
             if (m_bd.GetStone(p) == toPlay && m_bd.InAtari(p))
             {
                 if (m_ladder.Ladder(m_bd, p, toPlay, &m_ladderSequence,
@@ -149,16 +161,20 @@ vector<SgPoint> GoUctDefaultMoveFilter::Get()
     {
         for (GoBlockIterator it(m_bd); it; ++it)
         {
-            SgPoint p = *it;
-            if (m_bd.GetStone(p) == opp && m_bd.NumStones(p) >= 5 && m_bd.NumLiberties(p) == 2)
-            {
-                if (m_ladder.Ladder(m_bd, p, toPlay, &m_ladderSequence,
-                                    false/*twoLibIsEscape*/) > 0)
-                {
-                    if (m_ladderSequence.Length() >= m_param.m_minLadderLength) 
-                        rootFilter.push_back(m_ladderSequence[0]);
-                }
-            }
+            const SgPoint p = *it;
+            // LibertiesAreDiagonal: quick check to avoid cases where
+            // move may be a good "squeeze" play.
+            // @todo: need better filtering to remove only clearly bad
+            // fake ladder chases
+            if (m_bd.GetStone(p) == opp
+                && m_bd.NumStones(p) >= 5
+                && m_bd.NumLiberties(p) == 2
+                && LibertiesAreDiagonal(m_bd, p)
+                && m_ladder.Ladder(m_bd, p, toPlay, &m_ladderSequence,
+                                    false/*twoLibIsEscape*/) > 0
+                && m_ladderSequence.Length() >= m_param.m_minLadderLength
+                )
+                    rootFilter.push_back(m_ladderSequence[0]);
         }
     }
 

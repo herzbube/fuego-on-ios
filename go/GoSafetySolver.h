@@ -19,11 +19,10 @@ class GoSafetySolver : public GoStaticSafetySolver
 {
 public:
     /** Constructor, @see GoStaticSafetySolver */
-    explicit GoSafetySolver(GoBoard& board, GoRegionBoard* regions = 0) 
-             : GoStaticSafetySolver(board, regions)
-    {
-        m_code.Invalidate();
-    }
+    explicit GoSafetySolver(const GoBoard& board, GoRegionBoard* regions = 0)
+             : GoStaticSafetySolver(board, regions),
+             m_code()
+    { }
 
     /** Main function, compute safe points */
     void FindSafePoints(SgBWSet* safe);
@@ -33,6 +32,11 @@ public:
 
     /** call virtual RegionHealthyForBlock */
     virtual void FindHealthy();
+
+    /** Will this move possibly have to be played to capture 
+        dead opponent stones? */
+    bool PotentialCaptureMove(SgPoint p,
+                              SgBlackWhite regionColor) const;
 
     /** Check if internal state matches board */
     virtual bool UpToDate() const

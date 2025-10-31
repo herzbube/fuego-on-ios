@@ -36,13 +36,12 @@ void GoSafetyCommands::AddGoGuiAnalyzeCommands(GtpCommand& cmd)
 void GoSafetyCommands::CmdDameStatic(GtpCommand& cmd)
 {
     cmd.CheckArgNone();
-    GoModBoard modBoard(m_bd);
-    GoBoard& bd = modBoard.Board();
-    GoRegionBoard regionAttachment(bd);
-    GoSafetySolver solver(bd, &regionAttachment);
+    GoRegionBoard regionAttachment(m_bd);
+    GoSafetySolver solver(m_bd, &regionAttachment);
     SgBWSet safe;
     solver.FindSafePoints(&safe);
-    SgPointSet dame = GoSafetyUtil::FindDamePoints(bd, m_bd.AllEmpty(), safe);
+    SgPointSet dame =
+        GoSafetyUtil::FindDamePoints(m_bd, m_bd.AllEmpty(), safe);
     cmd << SgWritePointSet(dame, "", false);
 }
 
@@ -132,26 +131,24 @@ void GoSafetyCommands::CmdWinner(GtpCommand& cmd)
 
 SgBWSet GoSafetyCommands::GetSafe(int& totalRegions, const std::string& type)
 {
-    GoModBoard modBoard(m_bd);
-    GoBoard& bd = modBoard.Board();
-    GoRegionBoard regionAttachment(bd);
+    GoRegionBoard regionAttachment(m_bd);
     SgBWSet safe;
     if (type == "benson")
     {
-        GoBensonSolver solver(bd, &regionAttachment);
+        GoBensonSolver solver(m_bd, &regionAttachment);
         solver.FindSafePoints(&safe);
     }
     else if (type == "static")
     {
-        GoSafetySolver solver(bd, &regionAttachment);
+        GoSafetySolver solver(m_bd, &regionAttachment);
         solver.FindSafePoints(&safe);
     }
     else
         throw GtpFailure() << "invalid safety solver: " << type;
     SgPointSet proved = safe.Both();
-    for (SgBWIterator it; it; ++it)
+    for (SgBWIterator cit; cit; ++cit)
     {
-        SgBlackWhite c = *it;
+        SgBlackWhite c = *cit;
         for (SgVectorIteratorOf<GoRegion> it(regionAttachment.AllRegions(c));
              it; ++it)
             if ((*it)->Points().SubsetOf(proved))

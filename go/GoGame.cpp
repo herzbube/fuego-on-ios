@@ -358,7 +358,7 @@ void GoGame::SetRulesGlobal(const GoRules& rules)
     SetKomiGlobal(rules.Komi());
 }
 
-void GoGame::SetTimeSettingsGlobal(const GoTimeSettings& timeSettings,
+void GoGame::SetTimeSettingsGlobal(const SgTimeSettings& timeSettings,
                                    double overhead)
 {
     m_timeSettings = timeSettings;

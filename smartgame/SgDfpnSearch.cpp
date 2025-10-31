@@ -78,16 +78,13 @@ bool DfpnSolver::CheckAbort()
                     m_aborted = true;
                     SgDebug() << "DfpnSolver::CheckAbort(): Timelimit!\n";
                 }
+                else if (m_numMIDcalls < 100)
+                    m_checkTimerAbortCalls = 10;
                 else
                 {
-                    if (m_numMIDcalls < 100)
-                        m_checkTimerAbortCalls = 10;
-                    else
-                    {
-                        size_t midsPerSec = static_cast<size_t>
-                            (double(m_numMIDcalls) / elapsed);
-                        m_checkTimerAbortCalls = midsPerSec / 2;
-                    }
+                    size_t midsPerSec = static_cast<size_t>
+                        (double(m_numMIDcalls) / elapsed);
+                    m_checkTimerAbortCalls = midsPerSec / 2;
                 }
             }
             else
@@ -115,10 +112,8 @@ void DfpnSolver::GetPVFromHash(PointSequence& pv)
     	UndoMove();
 }
 
-void DfpnSolver::LookupData(DfpnData& data, const DfpnChildren& children, 
-                            std::size_t childIndex)
+void DfpnSolver::LookupChildDataNonConst(SgMove move, DfpnData& data)
 {
-    const SgMove move = children.MoveAt(childIndex);
     PlayMove(move);
     if (! TTRead(data))
     {
@@ -127,6 +122,19 @@ void DfpnSolver::LookupData(DfpnData& data, const DfpnChildren& children,
         data.m_work = 0;
     }
     UndoMove();
+}
+
+void DfpnSolver::LookupChildData(SgMove move, DfpnData& data) const
+{
+    DfpnSolver* solver = const_cast<DfpnSolver*>(this);
+    solver->LookupChildDataNonConst(move, data);
+}
+
+void DfpnSolver::LookupData(DfpnData& data, const DfpnChildren& children,
+                            std::size_t childIndex) const
+{
+    const SgMove move = children.MoveAt(childIndex);
+    LookupChildData(move, data);
 }
 
 size_t DfpnSolver::MID(const DfpnBounds& maxBounds, DfpnHistory& history)
@@ -456,22 +464,20 @@ void DfpnSolver::UpdateBounds(DfpnBounds& bounds,
     bounds = boundsAll;
 }
 
-bool DfpnSolver::Validate(DfpnHashTable& positions, const SgBlackWhite winner,
+bool DfpnSolver::Validate(DfpnHashTable& hashTable, const SgBlackWhite winner,
                           SgSearchTracer& tracer)
 {
     SG_ASSERT_BW(winner);
-
     DfpnData data;
     if (! TTRead(data))
     {
         PointSequence pv;
-        StartSearch(positions, pv);
+        StartSearch(hashTable, pv);
         const bool wasRead = TTRead(data);
         SG_DEBUG_ONLY(wasRead);
         SG_ASSERT(wasRead);
     }
 
-    std::vector<SgMove> moves;
     const bool orNode = (winner == GetColorToMove());
     if (orNode)
     {
@@ -503,24 +509,32 @@ bool DfpnSolver::Validate(DfpnHashTable& positions, const SgBlackWhite winner,
             return false;
         }
     }
-    else if (orNode)
+
+    std::vector<SgMove> moves;
+    if (orNode)
         moves.push_back(data.m_bestMove);
     else // AND node
         GenerateChildren(moves);
 
     // recurse
     for (std::vector<SgMove>::const_iterator it = moves.begin();
-        it != moves.end(); ++it)
+         it != moves.end(); ++it)
     {
         tracer.AddTraceNode(*it, GetColorToMove());
         PlayMove(*it);
-        if (! Validate(positions, winner, tracer))
+        if (! Validate(hashTable, winner, tracer))
             return false;
         UndoMove();
         tracer.TakeBackTraceNode();
     }
-
     return true;
+}
+
+void DfpnSolver::WriteMove(std::ostream& stream, SgMove move) const
+{
+    // Most likely you will want to override this with printing the
+    // game-specific representation of the move
+    stream << "SgMove " << move;
 }
 
 //----------------------------------------------------------------------------

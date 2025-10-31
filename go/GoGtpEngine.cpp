@@ -18,6 +18,7 @@
 #include "GoBoardRestorer.h"
 #include "GoEyeUtil.h"
 #include "GoGtpCommandUtil.h"
+#include "GoInfluence.h"
 #include "GoModBoard.h"
 #include "GoNodeUtil.h"
 #include "GoPlayer.h"
@@ -111,6 +112,7 @@ GoGtpEngine::GoGtpEngine(int fixedBoardSize, const char* programPath,
     Register("get_komi", &GoGtpEngine::CmdGetKomi, this);
     Register("gg-undo", &GoGtpEngine::CmdGGUndo, this);
     Register("go_board", &GoGtpEngine::CmdBoard, this);
+    Register("go_distance", &GoGtpEngine::CmdDistance, this);
     Register("go_param", &GoGtpEngine::CmdParam, this);
     Register("go_param_rules", &GoGtpEngine::CmdParamRules, this);
     Register("go_player_board", &GoGtpEngine::CmdPlayerBoard, this);
@@ -340,6 +342,7 @@ void GoGtpEngine::CmdAnalyzeCommands(GtpCommand& cmd)
         "sboard/Go Point Numbers/go_point_numbers\n"
         "none/Go Rules/go_rules %s\n"
         "plist/All Legal/all_legal %c\n"
+        "sboard/Go Distance/go_distance %c\n"
         "string/ShowBoard/showboard\n"
         "string/CpuTime/cputime\n"
         "string/Get Komi/get_komi\n"
@@ -388,19 +391,8 @@ void GoGtpEngine::CmdClearBoard(GtpCommand& cmd)
     CheckMaxClearBoard();
     if (! m_sentinelFile.empty() && exists(m_sentinelFile))
     {
-        # if defined(BOOST_FILESYSTEM_VERSION)
-           SG_ASSERT (  BOOST_FILESYSTEM_VERSION == 2
-                     || BOOST_FILESYSTEM_VERSION == 3);
-        #endif
-
-        #if (defined (BOOST_FILESYSTEM_VERSION) \
-             && (BOOST_FILESYSTEM_VERSION == 3))
-           throw GtpFailure() << "Detected sentinel file '"
+        throw GtpFailure() << "Detected sentinel file '"
                            << m_sentinelFile.string() << "'";
-        #else              
-           throw GtpFailure() << "Detected sentinel file '"
-                           << m_sentinelFile.native_file_string() << "'";
-        #endif
     }
     if (Board().MoveNumber() > 0)
         GameFinished();
@@ -417,6 +409,16 @@ void GoGtpEngine::CmdClock(GtpCommand& cmd)
     m_game.Time().UpdateTimeLeft();
     cmd << '\n' << m_game.Time();
 }
+
+void GoGtpEngine::CmdDistance(GtpCommand& cmd)
+{
+    cmd.CheckNuArg(1);
+    SgBlackWhite color = GoGtpCommandUtil::BlackWhiteArg(cmd, 0);
+    SgPointArray<int> distance;
+    GoInfluence::FindDistanceToStones(Board(), color, distance);
+    cmd << '\n' << SgWritePointArray<int>(distance, Board().Size());
+}
+
 
 /** Compute final score.
     Computes score only if GoRules::CaptureDead() == true.
@@ -556,14 +558,14 @@ void GoGtpEngine::CmdKgsTimeSettings(GtpCommand& cmd)
     if (type == "none")
     {
         cmd.CheckNuArg(1);
-        m_timeSettings = GoTimeSettings();
+        m_timeSettings = SgTimeSettings();
         ApplyTimeSettings();
     }
     else if (type == "absolute")
     {
         cmd.CheckNuArg(2);
         int mainTime = cmd.ArgMin<int>(1, 0);
-        GoTimeSettings timeSettings(mainTime);
+        SgTimeSettings timeSettings(mainTime);
         if (m_timeSettings == timeSettings)
             return;
         m_timeSettings = timeSettings;
@@ -576,7 +578,7 @@ void GoGtpEngine::CmdKgsTimeSettings(GtpCommand& cmd)
         int mainTime = cmd.ArgMin<int>(1, 0);
         int overtime = cmd.ArgMin<int>(2, 0);
         //int byoYomiPeriods = cmd.ArgMin<int>(3, 0);
-        GoTimeSettings timeSettings(mainTime, overtime, 1);
+        SgTimeSettings timeSettings(mainTime, overtime, 1);
         if (m_timeSettings == timeSettings)
             return;
         m_timeSettings = timeSettings;
@@ -588,7 +590,7 @@ void GoGtpEngine::CmdKgsTimeSettings(GtpCommand& cmd)
         int mainTime = cmd.ArgMin<int>(1, 0);
         int overtime = cmd.ArgMin<int>(2, 0);
         int overtimeMoves = cmd.ArgMin<int>(3, 0);
-        GoTimeSettings timeSettings(mainTime, overtime, overtimeMoves);
+        SgTimeSettings timeSettings(mainTime, overtime, overtimeMoves);
         if (m_timeSettings == timeSettings)
             return;
         m_timeSettings = timeSettings;
@@ -1355,7 +1357,7 @@ void GoGtpEngine::CmdTimeSettings(GtpCommand& cmd)
     int mainTime = cmd.ArgMin<int>(0, 0);
     int overtime = cmd.ArgMin<int>(1, 0);
     int overtimeMoves = cmd.ArgMin<int>(2, 0);
-    GoTimeSettings timeSettings(mainTime, overtime, overtimeMoves);
+    SgTimeSettings timeSettings(mainTime, overtime, overtimeMoves);
     if (m_timeSettings == timeSettings)
         return;
     if (Board().MoveNumber() > 0)
@@ -1383,7 +1385,7 @@ void GoGtpEngine::CheckMoveStackOverflow() const
 
 std::vector<std::string> GoGtpEngine::CreateStatisticsSlots()
 {
-    return vector<string>();
+    return std::vector<string>();
 }
 
 SgBlackWhite GoGtpEngine::BlackWhiteArg(const GtpCommand& cmd,
@@ -1511,8 +1513,9 @@ void GoGtpEngine::InitStatistics()
     m_statisticsSlots.push_back("MOVE");
     m_statisticsSlots.push_back("TIME");
     m_statisticsSlots.push_back("BOOK");
-    vector<string> slots = CreateStatisticsSlots();
-    for (vector<string>::const_iterator i = slots.begin(); i != slots.end();
+    std::vector<string> slots = CreateStatisticsSlots();
+    for (std::vector<string>::const_iterator i = slots.begin();
+         i != slots.end();
          ++i)
     {
         if (i->find('\t') != string::npos)
@@ -1759,11 +1762,7 @@ void GoGtpEngine::Ponder()
     // Call GoPlayer::Ponder() after 0.2 seconds delay to avoid calls in very
     // short intervals between received commands
     boost::xtime time;
-    #if BOOST_VERSION >= 105000
-        boost::xtime_get(&time, boost::TIME_UTC_);
-    #else
-         boost::xtime_get(&time, boost::TIME_UTC);
-    #endif
+    boost::xtime_get(&time, boost::TIME_UTC_);
     bool aborted = false;
     for (int i = 0; i < 200; ++i)
     {

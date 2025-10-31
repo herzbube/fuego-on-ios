@@ -8,14 +8,14 @@ AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 AC_PROG_CXX
 AC_PROG_RANLIB
-AX_BOOST_BASE([1.33.1])
+AX_BOOST_BASE([1.50.0])
 AX_BOOST_THREAD
 AX_BOOST_SYSTEM
 AX_BOOST_DATE_TIME
 AX_BOOST_FILESYSTEM
 AX_BOOST_PROGRAM_OPTIONS
 AX_BOOST_UNIT_TEST_FRAMEWORK
-
+AX_PTHREAD
 
 AC_ARG_ENABLE(max-size,
   [  --enable-max-size=n     define maximum board size (2..25, default 19)])
@@ -91,4 +91,4 @@ AC_CHECK_HEADERS([sys/sysctl.h])
 AX_CXXFLAGS_WARN_ALL
 AX_CXXFLAGS_GCC_OPTION(-Wextra)
 
-AC_OUTPUT([Makefile book/Makefile regression/Makefile misctests/Makefile fuegomain/Makefile fuegotest/Makefile go/Makefile gouct/Makefile gtpengine/Makefile simpleplayers/Makefile smartgame/Makefile unittestmain/Makefile])
+AC_OUTPUT([Makefile book/Makefile regression/Makefile misctests/Makefile fuegomain/Makefile fuegotest/Makefile go/Makefile gouct/Makefile gtpengine/Makefile features/Makefile simpleplayers/Makefile smartgame/Makefile unittestmain/Makefile])
