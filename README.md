@@ -1,15 +1,19 @@
 ## Fuego on iOS
 
-The upstream [Fuego](http://fuego.sourceforge.net/) project is a collection of C++ libraries for developing software for the game of Go.
+The upstream [Fuego](http://fuego.sourceforge.net/) project is a collection of C++ libraries for developing software for the game of Go. It also includes a Go computer player implementation that uses Monte Carlo tree search.
 
-The primary goal of the Fuego on iOS project is to provide a build of the Fuego source code for the iOS platform. The build is packaged into an XCFramework bundle that can be easily integrated into any Xcode project. The build tries to remain as close as possible to the original upstream source code, with only such modifications as are necessary to overcome any difficulties in 1) building for the iOS platform, and in 2) building with a modern version of Boost.
+The primary goal of the Fuego on iOS project is to provide a build of the Fuego source code for the iOS platform. The build is packaged into an XCFramework bundle that can be easily integrated into any Xcode project. The build tries to remain as close as possible to the original upstream source code, with only such modifications as are necessary to overcome any difficulties in 1) building for the iOS platform, and in 2) building with a modern version of [Boost](https://github.com/boostorg/boost).
 
 A secondary goal of the Fuego on iOS project is to provide an iOS build of Fuego that is suitable for integration into the [Little Go](https://github.com/herzbube/littlego) project.
 
 Fuego on iOS currently combines
 
 * Boost 1.89.0
-* Fuego trunk r1728
+* Fuego trunk r2038
+
+## Upstream Fuego status
+
+As of this writing, upstream Fuego development has ceased, with the latest change being the above-mentioned Fuego trunk r2038 from December 2019. Because computer Go is nowadays based on AI models, it is unlikely that Fuego will receive any further updates.
 
 ## Quickstart Guide
 
@@ -25,7 +29,7 @@ That's it, now all you need to do is integrate the Boost and Fuego frameworks in
 
 ##### Overview
 
-The Fuego on iOS project has 3 permanen branches:
+The Fuego on iOS project has 3 permanent branches:
 
 * master
 * fuego-on-ios
@@ -48,13 +52,19 @@ The `fuego-on-ios` branch is dedicated to maintaining the following stuff:
 1. `fuego-on-ios.xcodeproj`: The Xcode project that defines the build of Fuego for the iOS platform.
 1. `build.sh`: A script that uses the Xcode project to build Fuego (via `xcodebuild`) and packages the result into a XCFramework bundle.
 
-Also in this branch are those changes to the original Fuego source code that are necessary to make Fuego compile in the Xcode environment, and with a modern version of Boost.
+Also in this branch are those changes to the original Fuego source code that are necessary to make Fuego compile in the Xcode environment, and with a modern version of Boost. These changes can be viewed by examining the output of this command:
+
+    git diff master fuego-on-ios
 
 ##### fuego-for-littlego
 
 The branch `fuego-for-littlego` contains those changes to the Fuego source code that are required by the [Little Go](https://github.com/herzbube/littlego) project.
 
 These changes are separated into their own branch because the intent for the `fuego-on-ios` branch is to keep that build as close to the original source as possible so that other people can take it from there and add their own stuff without the Little Go modifications (which might not be palatable to everyone).
+
+The changes can be viewed by examining the output of this command:
+
+    git diff fuego-on-ios fuego-for-littlego
 
 ## Which branch should I use?
 
@@ -152,7 +162,7 @@ Once the local Git repository is in shape, the changes can be pushed to GitHub.
 
 All commits in `master` up to the desired commit must be merged into the `fuego-on-ios` branch. To keep things simple no cherry-picking is allowed.
 
-After the merge, the Xcode project may also need to be updated (add new files, remove old files, update build settings).
+After the merge, the Xcode project may also need to be updated (add new files, remove old files, update build settings). See section "How the Xcode project was created" for details that may help with this task.
 
 After `fuego-on-ios` has been updated, changes must be further merged into the `fuego-for-littlego` branch.
 
@@ -208,7 +218,7 @@ Updates to this README file are made on the `fuego-on-ios` branch and then merge
 * `svn2git` creates native Git branches and tags from Subversion branches and tags, whereas `git svn` just imports everything into the `master` branch and creates remote tracking branches for Subversion branches and tags.
 * `svn2git` points HEAD of `master` to the commit that represents the latest Subversion revision in the Subversion repo's trunk, whereas `git svn` points HEAD of `master` to the most recent Subversion revision, in whatever branch that may be (not necessarily trunk).
 
-As of this writing, the latest released version of `svn2git` is 2.2.2. This version has a problem interacting with Git releases 1.8.3.2 and later. If you have this configuration, you can either downgrade Git on your system to 1.8.3.1, or you can get an unreleased version of svn2git where [this fix](https://github.com/nirvdrum/svn2git/issues/132) has been integrated.
+As of this writing, the latest released version of `svn2git` is 2.4.0, released in 2016. Although quite old, this version was used successfully in 2025 to update the master branch of the fuego-on-ios project.
   
 ##### Reconnecting a cloned Git repository with upstream Subversion repository
 
@@ -226,7 +236,7 @@ To fix the problem, add some configuration information to the `.git/config` file
 
 Now checkout `master` if you have not yet done so, then run
 
-    svn2git --rebase
+    svn2git  --metadata --rebase
 
 This takes quite a long time because it fetches all revisions from upstream Subversion. Behind the scenes the contents of the `.git/svn` folder are restored. From now on, `svn2git --rebase` should work as expected.
 
@@ -237,7 +247,7 @@ This takes quite a long time because it fetches all revisions from upstream Subv
 Assuming you have Boost installed somewhere locally (e.g. through Homebrew, MacPorts or Fink), you can run these commands to build and run Fuego for macOS:
 
     cd /path/to/fuego-on-ios
-    
+
     # You may need to install the "autoconf" and "autotools" packages (e.g. through
     # Homebrew, MacPorts or Fink) first.
     autoreconf -i
@@ -254,6 +264,8 @@ Assuming you have Boost installed somewhere locally (e.g. through Homebrew, MacP
     ./macos/bin/fuego
 
 Such a build may be useful to test patches on the command line.
+
+Note that the build instructions above should also work on the pristine sources of Fuego, obtained directly from the upstream Subversion repository.
 
 ##### How the Fuego on iOS repository was initialized
 
