@@ -133,6 +133,10 @@ void SgTimeRecord::SetClock(SgNode& node, SgBlackWhite player, double time)
         m_timeLeft[player] = OTPeriod();
         m_movesLeft[player] = OTNumMoves();
     }
+    else
+    {
+      m_movesLeft[player] = 0;
+    }
 }
 
 void SgTimeRecord::UpdateTimeLeft()

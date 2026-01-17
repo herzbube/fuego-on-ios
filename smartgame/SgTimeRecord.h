@@ -139,7 +139,9 @@ public:
     void PlayedMove(SgNode& node, SgBlackWhite player);
 
     /** Set time left and store it as a property in the tree. 
-        If time is <= 0, puts it into overtime. */
+        If time is <= 0, puts it into overtime.
+        Also adjusts moves left to either 0 (if time is > 0) or to OTNumMoves()
+        (if time is <= 0). */
     void SetClock(SgNode& node, SgBlackWhite player, double time);
 
     // @} // name

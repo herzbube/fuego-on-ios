@@ -386,12 +386,22 @@ void GoGame::SetTimeSettingsGlobal(const SgTimeSettings& timeSettings,
         m_root->Add(new SgPropTime(SG_PROP_OT_PERIOD, overtime));
         m_root->SetIntProp(SG_PROP_OT_NU_MOVES, timeSettings.OvertimeMoves());
     }
-    // TODO: What if the current node is not the root? What if nodes on the
-    // path from the root to the current node contain time left properties?
-    // Should we delete all time left properties or keep and still respect
-    // them for setting the time left in the current position?
+    // Order in which methods are invoked is important: SgTimeRecord::SetClock()
+    // relies on SgTimeRecord::SetOTPeriod() and SgTimeRecord::SetOTNumMoves()
+    // having been invoked before.
     m_time.SetOTPeriod(overtime);
     m_time.SetOTNumMoves(timeSettings.OvertimeMoves());
+    // TODO: SgTimeRecord::SetClock() writes SG_PROP_TIME_BLACK (BL property) or
+    // SG_PROP_TIME_WHITE (WL property). This is incorrect if the current node
+    // is the root node, because these two properties may appear only in a
+    // node that contains a move, and the root node never contains a move. Even
+    // if the current node is not the root node, it is probably wrong to set the
+    // properties because this method expects to be invoked when no moves have
+    // been played yet. Currently this is the only place that invokes
+    // SgTimeRecord::SetClock(), so it might make sense to change the method's
+    // implementation to not write the properties. Analysis would first need to
+    // be conducted if other places in the code expect the presence of the
+    // properties (e.g. SgTimeRecord::GetTimeFromTree() reads the properties).
     m_time.SetClock(*m_current, SG_BLACK, mainTime);
     m_time.SetClock(*m_current, SG_WHITE, mainTime);
     m_time.TurnClockOn(true);
