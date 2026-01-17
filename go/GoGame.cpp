@@ -365,13 +365,19 @@ void GoGame::SetTimeSettingsGlobal(const SgTimeSettings& timeSettings,
     SgNodeUtil::RemovePropInSubtree(*m_root, SG_PROP_TIME);
     SgNodeUtil::RemovePropInSubtree(*m_root, SG_PROP_OT_NU_MOVES);
     SgNodeUtil::RemovePropInSubtree(*m_root, SG_PROP_OT_PERIOD);
-    m_time.SetOverhead(overhead);
     if (timeSettings.IsUnknown())
     {
-        // TODO: What to do with m_time? What to do with time left properties
-        // in tree nodes?
+        // IsUnknown() returns true if the time settings express
+        // "no time limits", as per GTP 2.0 specification. Since
+        // "no time limits" are in effect when GoGame is newly constructed,
+        // we reset m_time to the same values that are used in the GoGame
+        // constructor. If the clock was previously turned on, it is now
+        // turned off.
+        m_time = SgTimeRecord();
+        m_time.SetOverhead(overhead);
         return;
     }
+    m_time.SetOverhead(overhead);
     double mainTime = timeSettings.MainTime();
     m_root->Add(new SgPropTime(SG_PROP_TIME, mainTime));
     double overtime = timeSettings.Overtime();

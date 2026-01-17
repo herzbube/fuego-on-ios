@@ -145,6 +145,14 @@ public:
 
     /** Set time settings properties in the root node and delete all such
         properties in the rest of the tree.
+        Does not touch any "time left" or "moves left" properties in the tree.
+        The expectation is that this method is invoked only when no moves have
+        been played yet. No moves means there are no "time left" or "moves left"
+        properties to deal with, because according to the SGF specification such
+        properties may appear only in nodes that contain moves (the
+        specification marks the properties with propertytype "move"). It is the
+        responsibility of the caller to deal with such properties if the caller
+        violates the expectation.
         @param timeSettings
         @param overhead See SgTimeRecord */
     void SetTimeSettingsGlobal(const SgTimeSettings& timeSettings,
