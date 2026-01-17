@@ -261,11 +261,6 @@ inline void SgTimeRecord::SetOverhead(double overhead)
     m_overhead = overhead;
 }
 
-inline void SgTimeRecord::SetTimeLeft(SgBlackWhite color, double timeLeft)
-{
-    m_timeLeft[color] = timeLeft;
-}
-
 inline bool SgTimeRecord::UseOvertime() const
 {
     return m_overtimeNumMoves > 0;
