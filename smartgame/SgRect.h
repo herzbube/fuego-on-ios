@@ -67,9 +67,15 @@ public:
         std::swap(m_bottom, m_right);
     }
     
+    /** Grow to include p */
     void Include(SgPoint p);
 
+    /** Grow to include rect */
     void Include(const SgRect& rect);
+
+    /** Grow to include x,y-point */
+    void IncludeXY(int x, int y);
+
 
     void Intersect(const SgRect& rect);
 
@@ -195,27 +201,18 @@ public:
     { }
 
     /** Iterate through rectangle: left to right, top to bottom */
-    void operator++()
-    {
-        SG_ASSERT(m_rect.Contains(m_cursor));
-        if (SgPointUtil::Col(m_cursor) == m_rect.Right())
-            m_cursor += SG_NS + m_rect.Left() - m_rect.Right();
-        else
-            m_cursor += SG_WE;
-    }
+    void operator++();
 
     /** Return the value of the current element. */
-    SgPoint operator*() const
-    {
-        return m_cursor;
-    }
+    SgPoint operator*() const;
 
     /** Return true if iteration is valid, otherwise false. */
-    operator bool() const
-    {
-        return m_cursor <= m_end;
-    }
-    
+    operator bool() const;
+
+    /** Are we at the end of one line in the rectangle? 
+        Useful for printing. */
+    bool AtEndOfLine() const;
+
 private:
     const SgRect& m_rect;
 
@@ -232,6 +229,31 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& stream, const SgRect& rect);
+
+//----------------------------------------------------------------------------
+inline void SgRectIterator::operator++()
+{
+    SG_ASSERT(m_rect.Contains(m_cursor));
+    if (AtEndOfLine())
+        m_cursor += SG_NS + m_rect.Left() - m_rect.Right();
+    else
+        m_cursor += SG_WE;
+}
+
+inline SgPoint SgRectIterator::operator*() const
+{
+    return m_cursor;
+}
+
+inline SgRectIterator::operator bool() const
+{
+    return m_cursor <= m_end;
+}
+
+inline bool SgRectIterator::AtEndOfLine() const
+{
+    return SgPointUtil::Col(m_cursor) == m_rect.Right();
+}
 
 //----------------------------------------------------------------------------
 

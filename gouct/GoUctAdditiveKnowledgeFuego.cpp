@@ -7,6 +7,9 @@
 #include "SgSystem.h"
 #include "GoUctAdditiveKnowledgeFuego.h"
 
+#include <cmath>
+#include "SgPoint.h"
+
 //----------------------------------------------------------------------------
 
 /** @todo This is a tunable constant. */
@@ -15,10 +18,14 @@ const float GoUctAdditiveKnowledgeFuego::VALUE_MULTIPLIER = 4.0f;
 //----------------------------------------------------------------------------
 
 GoUctAdditiveKnowledgeFuego::GoUctAdditiveKnowledgeFuego(const GoBoard& bd)
-    : GoUctAdditiveKnowledgeStdProb(bd)
+    : GoAdditiveKnowledgeStdProb(bd)
+{ }
+
+// m_raveValue is a SgUctValue which is double by default, but holds
+// a predictor value which only has float precision
+inline float RaveValueAsFloat(const SgUctMoveInfo& info)
 {
-    // Knowledge applies to all moves
-    SetMoveRange(0, 10000); 
+    return static_cast<float>(info.m_raveValue);
 }
 
 // @todo Assumes that SgMoveInfo has m_raveValue (and m_raveCount) populated
@@ -28,17 +35,12 @@ void
 GoUctAdditiveKnowledgeFuego::ProcessPosition(std::vector<SgUctMoveInfo>&
                                              moves)
 {
-    float sum = 0.0;
-    // The original code use a variable length array. Variable length arrays
-    // are not part of the C++ standard. Some compilers may support them, but
-    // at least modern version of Clang nowadays generate a warning
-    // ("Variable length arrays in C++ are a Clang extension").
-    // Although the warning could be suppressed, it is better to not use the
-    // language incorrectly. A good replacement for arrays is std::vector.
-    std::vector<float> values(moves.size());
-    for (size_t i = 0; i < moves.size(); ++i)
+    float sum = 0.0f;
+    float values[SG_MAX_MOVES];
+    SG_ASSERT(moves.size() <= static_cast<unsigned int>(SG_MAX_MOVES));
+    for (size_t i = 0; i < moves.size(); ++i) 
     {
-        values[i] = exp(VALUE_MULTIPLIER * moves[i].m_raveValue);
+        values[i] = expf(VALUE_MULTIPLIER * RaveValueAsFloat(moves[i]));
         sum += values[i];
     }
     if (sum > 0.0)

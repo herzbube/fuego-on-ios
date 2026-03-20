@@ -62,8 +62,7 @@ bool ReadCommand(GtpCommand& cmd, GtpInputStream& in)
 {
     string line;
     while (in.GetLine(line) && ! IsCommandLine(line))
-    {
-    }
+    { }
     if (in.EndOfInput())
         return false;
     Trim(line);
@@ -346,11 +345,7 @@ void ReadThread::Function::ExecuteSleepLine(const string& line)
     {
         std::cerr << "GtpEngine: sleep " << seconds << '\n';
         xtime time;
-        #if BOOST_VERSION >= 105000
-            xtime_get(&time, boost::TIME_UTC_);
-        #else
-            xtime_get(&time, boost::TIME_UTC);
-        #endif
+        xtime_get(&time, boost::TIME_UTC_);
         time.sec += seconds;
         thread::sleep(time);
         std::cerr << "GtpEngine: sleep done\n";
@@ -465,11 +460,6 @@ string GtpCommand::ArgToLower(std::size_t number) const
     return value;
 }
 
-bool GtpCommand::BoolArg(std::size_t number) const
-{
-    return Arg<bool>(number);
-}
-
 void GtpCommand::CheckNuArg(std::size_t number) const
 {
     if (NuArg() == number)
@@ -490,26 +480,6 @@ void GtpCommand::CheckNuArgLessEqual(std::size_t number) const
         throw GtpFailure() << "command needs at most one argument";
     else
     throw GtpFailure() << "command needs at most " << number << " arguments";
-}
-
-double GtpCommand::FloatArg(std::size_t number) const
-{
-    return Arg<double>(number);
-}
-
-int GtpCommand::IntArg(std::size_t number) const
-{
-    return Arg<int>(number);
-}
-
-int GtpCommand::IntArg(std::size_t number, int min) const
-{
-    return ArgMin<int>(number, min);
-}
-
-int GtpCommand::IntArg(std::size_t number, int min, int max) const
-{
-    return ArgMinMax<int>(number, min, max);
 }
 
 void GtpCommand::Init(const string& line)
@@ -557,16 +527,6 @@ void GtpCommand::SetResponse(const string& response)
 void GtpCommand::SetResponseBool(bool value)
 {
     m_response.str(value ? "true" : "false");
-}
-
-std::size_t GtpCommand::SizeTypeArg(std::size_t number) const
-{
-    return Arg<size_t>(number);
-}
-
-std::size_t GtpCommand::SizeTypeArg(std::size_t number, std::size_t min) const
-{
-    return ArgMin<size_t>(number, min);
 }
 
 /** Split line into arguments.

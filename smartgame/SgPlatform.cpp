@@ -8,6 +8,12 @@
 #include <algorithm>
 
 #ifdef WIN32
+
+// MinGW already defines NOMINMAX
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -16,6 +22,7 @@
 #include <sys/sysctl.h>
 #endif
 
+#include "SgStringUtil.h"
 //----------------------------------------------------------------------------
 /** The program directory. Used for finding data files */
 boost::filesystem::path s_programDir;
@@ -45,6 +52,13 @@ void SgPlatform::SetTopSourceDir(const boost::filesystem::path& dir)
     s_topSourceDir = dir;
 }
 
+std::string SgPlatform::GetDataFileNativePath(const std::string& filename)
+{
+    const boost::filesystem::path& filePath = SgPlatform::GetTopSourceDir()
+                                                / "data" / filename;
+    return SgStringUtil::GetNativeFileName(filePath);
+}
+
 //----------------------------------------------------------------------------
 
 std::size_t SgPlatform::TotalMemory()
@@ -56,7 +70,7 @@ std::size_t SgPlatform::TotalMemory()
         return 0;
     size_t totalVirtual = static_cast<size_t>(status.ullTotalVirtual);
     size_t totalPhys = static_cast<size_t>(status.ullTotalPhys);
-    return min(totalVirtual, totalPhys);
+    return std::min(totalVirtual, totalPhys);
 #elif defined _SC_PHYS_PAGES
     long pages = sysconf(_SC_PHYS_PAGES);
     if (pages < 0)

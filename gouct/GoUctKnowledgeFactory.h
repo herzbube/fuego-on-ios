@@ -9,6 +9,7 @@
 
 #include "GoBoard.h"
 #include "GoUctAdditiveKnowledgeGreenpeep.h"
+#include "GoUctFeatureKnowledge.h"
 
 //----------------------------------------------------------------------------
 class GoUctKnowledgeFactory
@@ -17,7 +18,9 @@ public:
 	GoUctKnowledgeFactory(const GoUctPlayoutPolicyParam& param);
 	~GoUctKnowledgeFactory();
 
-    GoUctAdditiveKnowledge* Create(const GoBoard& bd);
+    GoAdditiveKnowledge* Create(const GoBoard& bd);
+
+    GoAdditiveKnowledge* CreateByType(const GoBoard& bd, GoKnowledgeType type);
 
     GoUctAdditiveKnowledgeParamGreenpeep& GreenpeepParam();
 
@@ -26,6 +29,8 @@ private:
 
     /** The param used for additive knowledge */
     const GoUctPlayoutPolicyParam& m_param;
+    
+    GoUctFeatureKnowledgeFactory m_featureKnowledgeFactory;
 };
 //----------------------------------------------------------------------------
 

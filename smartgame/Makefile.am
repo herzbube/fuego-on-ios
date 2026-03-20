@@ -44,6 +44,7 @@ SgSystem.cpp \
 SgTime.cpp \
 SgTimeControl.cpp \
 SgTimeRecord.cpp \
+SgTimeSettings.cpp \
 SgUctSearch.cpp \
 SgUctTree.cpp \
 SgUctTreeUtil.cpp \
@@ -55,6 +56,7 @@ noinst_HEADERS = \
 SgAdditiveKnowledge.h \
 SgArray.h \
 SgArrayList.h \
+SgAutoUnitTest.h \
 SgBookBuilder.h \
 SgBWArray.h \
 SgBWSet.h \
@@ -118,6 +120,7 @@ SgTime.h \
 SgTimeControl.h \
 SgTimeRecord.h \
 SgTimer.h \
+SgTimeSettings.h \
 SgUctSearch.h \
 SgUctTree.h \
 SgUctTreeUtil.h \

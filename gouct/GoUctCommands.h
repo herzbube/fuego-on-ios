@@ -43,7 +43,8 @@ public:
         @param player Reference to pointer to current player, this player can
         be null or a different player, but those commands of this class that
         need a GoUctPlayer will fail, if the current player is not
-        GoUctPlayer. */
+        GoUctPlayer. 
+        @param game The current game */
     GoUctCommands(const GoBoard& bd, GoPlayer*& player, const GoGame& game);
 
     void AddGoGuiAnalyzeCommands(GtpCommand& cmd);
@@ -63,6 +64,7 @@ public:
         - @link CmdLadderKnowledge() @c uct_ladder_knowledge @endlink
         - @link CmdMaxMemory() @c uct_max_memory @endlink
         - @link CmdMoves() @c uct_moves @endlink
+        - @link CmdNodeInfo() @c uct_node_info @endlink
         - @link CmdParamGlobalSearch() @c uct_param_globalsearch @endlink
         - @link CmdParamPolicy() @c uct_param_policy @endlink
         - @link CmdParamPlayer() @c uct_param_player @endlink
@@ -73,6 +75,7 @@ public:
         - @link CmdPolicyCorrectedMoves() @c uct_policy_corrected_moves 
           @endlink
         - @link CmdPolicyMoves() @c uct_policy_moves @endlink
+        - @link CmdPolicyMovesSimple() @c uct_policy_moves_simple @endlink
         - @link CmdPriorKnowledge() @c uct_prior_knowledge @endlink
         - @link CmdRaveValues() @c uct_rave_values @endlink
         - @link CmdRootFilter() @c uct_root_filter @endlink
@@ -105,7 +108,9 @@ public:
     void CmdLadderKnowledge(GtpCommand& cmd);
     void CmdMaxMemory(GtpCommand& cmd);
     void CmdMoves(GtpCommand& cmd);
+    void CmdNodeInfo(GtpCommand& cmd);
     void CmdParamGlobalSearch(GtpCommand& cmd);
+    void CmdParamFeatureKnowledge(GtpCommand& cmd);
     void CmdParamPolicy(GtpCommand& cmd);
     void CmdParamPlayer(GtpCommand& cmd);
     void CmdParamRootFilter(GtpCommand& cmd);
@@ -114,6 +119,7 @@ public:
     void CmdPatterns(GtpCommand& cmd);
     void CmdPolicyCorrectedMoves(GtpCommand& cmd);
     void CmdPolicyMoves(GtpCommand& cmd);
+    void CmdPolicyMovesSimple(GtpCommand& cmd);
     void CmdPriorKnowledge(GtpCommand& cmd);
     void CmdRaveValues(GtpCommand& cmd);
     void CmdRootFilter(GtpCommand& cmd);
@@ -152,7 +158,7 @@ private:
     	Either show additive knowledge only, or all knowledge
      */
     void DisplayMoveInfo(GtpCommand& cmd, 
-                         const vector<SgUctMoveInfo>& moves,
+                         const std::vector<SgUctMoveInfo>& moves,
                          bool additiveKnowledge);
 
 
@@ -183,6 +189,8 @@ private:
 
     GoUctGlobalSearchState<GoUctPlayoutPolicy<GoUctBoard> >&
     ThreadState(unsigned int threadId);
+
+    void WritePolicyMoves(GtpCommand& cmd, bool writeGammas);
 };
 
 //----------------------------------------------------------------------------

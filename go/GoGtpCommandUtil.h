@@ -7,14 +7,14 @@
 #define GO_GTPCOMMANDUTIL_H
 
 #include <cstddef>
+#include "GoBoard.h"
+#include "GtpEngine.h"
 #include "SgBlackWhite.h"
 #include "SgBoardColor.h"
+#include "SgGtpUtil.h"
 #include "SgPoint.h"
+#include "SgPointArray.h"
 #include "SgVector.h"
-
-class GtpCommand;
-class GoBoard;
-template<typename T> class SgPointArray;
 
 //----------------------------------------------------------------------------
 
@@ -64,8 +64,19 @@ namespace GoGtpCommandUtil
     SgVector<SgPoint> PointListArg(const GtpCommand& cmd, 
                                    const GoBoard& board);
 
-    void RespondNumberArray(GtpCommand& cmd, const SgPointArray<int>& array,
-                            int scale, const GoBoard& board);
+    /** Print color gradient for board in a format understood by GoGui cboard.
+     */
+    template<int SIZE>
+    void RespondColorGradientData(GtpCommand& cmd,
+                                  const SgArray<float,SIZE>& data,
+                                  float minValue,
+                                  float maxValue,
+                                  const GoBoard& board);
+
+    void RespondNumberArray(GtpCommand& cmd,
+                            const SgPointArray<int>& array,
+                            int scale,
+                            const GoBoard& board);
 
     /** Sort response to gogui-analyze_commands alphabetically by label.
         Useful if the response to gogui-analyze_commands was concatenated
@@ -83,6 +94,20 @@ inline SgVector<SgPoint> GoGtpCommandUtil::PointListArg(const GtpCommand& cmd,
                                                       const GoBoard& board)
 {
     return PointListArg(cmd, 0, board);
+}
+
+template<int SIZE>
+void GoGtpCommandUtil::RespondColorGradientData(GtpCommand& cmd,
+                                                const SgArray<float,SIZE>& data,
+                                                float minValue,
+                                                float maxValue,
+                                                const GoBoard& board)
+{
+    SgColorGradient gr(SgRGB(0,255,0), minValue, SgRGB(0,0,255), maxValue);
+    SgPointArray<std::string> array("\"\"");
+    for (GoBoard::Iterator it(board); it; ++it)
+        array[*it] = gr.ColorOf(data[*it]).ToString();
+    cmd << SgWritePointArray<std::string>(array, board.Size());
 }
 
 //----------------------------------------------------------------------------

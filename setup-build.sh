@@ -4,7 +4,7 @@
 # of GCC and sets up build configurations for optimized and debug builds in
 # the subdirectory "build".
 
-DEFAULT_TARGETS="dbg opt opt-9"
+DEFAULT_TARGETS="dbg opt"
 if test $# -eq 0 ; then
     TARGETS="$DEFAULT_TARGETS"
 else

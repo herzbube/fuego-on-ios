@@ -14,7 +14,7 @@ namespace {
     void ComputeArithmeticMean(std::vector<SgUctMoveInfo>& moves,
                                int nuPredictors)
     {
-        const float exponent = 1.0/nuPredictors;
+        const float exponent = 1.0f / nuPredictors;
         for (size_t j = 0; j < moves.size(); ++j)
             moves[j].m_predictorValue =
             std::pow(moves[j].m_predictorValue, exponent);
@@ -31,34 +31,32 @@ namespace {
 
 GoUctAdditiveKnowledgeMultiple::GoUctAdditiveKnowledgeMultiple(
         const GoBoard& bd,
-        SgUctValue scale,
-        SgUctValue minimum,
-        GoUctKnowledgeCombinationType combinationType)
+        float minimum,
+        GoKnowledgeCombinationType combinationType)
     :
-    GoUctAdditiveKnowledge(bd),
+    GoAdditiveKnowledge(bd),
     m_minimum(minimum),
-    m_scale(scale),
     m_combinationType(combinationType)
 { }
 
 GoUctAdditiveKnowledgeMultiple::~GoUctAdditiveKnowledgeMultiple()
 {
-    for (SgVectorIterator<GoUctAdditiveKnowledge*> it(m_additiveKnowledge); 
+    for (SgVectorIterator<GoAdditiveKnowledge*> it(m_additiveKnowledge); 
          it; ++it)
         delete *it;
 }
 
 void GoUctAdditiveKnowledgeMultiple::AddKnowledge(
-	GoUctAdditiveKnowledge* knowledge)
+	GoAdditiveKnowledge* knowledge)
 {
 	if (m_additiveKnowledge.NonEmpty())
-    	SG_ASSERT(   knowledge->ProbabilityBased() 
-                  == m_additiveKnowledge[0]->ProbabilityBased());
+    	SG_ASSERT(   knowledge->PredictorType()
+                  == m_additiveKnowledge[0]->PredictorType());
     SG_ASSERT(! m_additiveKnowledge.Contains(knowledge));
     m_additiveKnowledge.PushBack(knowledge);
 }
 
-const GoUctAdditiveKnowledge* 
+const GoAdditiveKnowledge* 
 	GoUctAdditiveKnowledgeMultiple::FirstKnowledge() const
 {
 	SG_ASSERT(m_additiveKnowledge.NonEmpty());
@@ -92,13 +90,13 @@ const
     }
 }
 
-bool GoUctAdditiveKnowledgeMultiple::ProbabilityBased() const
+GoPredictorType GoUctAdditiveKnowledgeMultiple::PredictorType() const
 {
-	return FirstKnowledge()->ProbabilityBased();
+	return FirstKnowledge()->PredictorType();
 }
 
 inline void Combine(float& v, float newV,
-                    GoUctKnowledgeCombinationType combinationType)
+                    GoKnowledgeCombinationType combinationType)
 {
     switch (combinationType)
     {
@@ -124,7 +122,7 @@ inline void Combine(float& v, float newV,
 
 inline void PostProcess(InfoVector& moves,
                         int nuPredictors,
-                        GoUctKnowledgeCombinationType combinationType)
+                        GoKnowledgeCombinationType combinationType)
 {
     switch (combinationType)
     {
@@ -144,22 +142,18 @@ inline void PostProcess(InfoVector& moves,
 void GoUctAdditiveKnowledgeMultiple::ProcessPosition(InfoVector& moves)
 {
     InitPredictorValues(moves);
-    const int moveNum = Board().MoveNumber();
     int nuPredictors = 0;
-    for (SgVectorIterator<GoUctAdditiveKnowledge*> it(m_additiveKnowledge);
+    for (SgVectorIterator<GoAdditiveKnowledge*> it(m_additiveKnowledge);
          it; ++it)
     {
-        if ((*it)->InMoveRange(moveNum))
-        {
-            ++nuPredictors; // count the predictors we are actually using.
-            std::vector<SgUctMoveInfo> movesCopy = moves;
-            InitPredictorValues(movesCopy);
-            (*it)->ProcessPosition(movesCopy);
-            for (std::size_t j = 0; j < moves.size(); ++j)
-                Combine(moves[j].m_predictorValue,
-                        movesCopy[j].m_predictorValue,
-                        m_combinationType);
-        }
+        ++nuPredictors; // count the predictors we are actually using.
+        std::vector<SgUctMoveInfo> movesCopy = moves;
+        InitPredictorValues(movesCopy);
+        (*it)->ProcessPosition(movesCopy);
+        for (std::size_t j = 0; j < moves.size(); ++j)
+            Combine(moves[j].m_predictorValue,
+                    movesCopy[j].m_predictorValue,
+                    m_combinationType);
     }
     
     if (nuPredictors > 1)

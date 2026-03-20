@@ -42,7 +42,8 @@ void SaveNode(std::ostream& out, const SgUctTree& tree, const SgUctNode& node,
 {
     out << "C[MoveCount " << node.MoveCount()
         << "\nPosCount " << node.PosCount()
-        << "\nMean " << fixed << setprecision(2) << node.Mean();
+        << "\nMean " << fixed << setprecision(2) << node.Mean()
+        << "\n" << node.ProvenType();
     if (! node.HasChildren())
     {
         out << "]\n";
@@ -115,7 +116,7 @@ SgPoint GoUctUtil::GenForcedOpeningMove(const GoBoard& bd)
         moves.PushBack(Pt(sz - 3, sz - 3));
     if (moves.IsEmpty())
         return SG_NULLMOVE;
-    return moves[SgRandom::Global().SmallInt(moves.Length())];
+    return moves[0];
 }
 
 void GoUctUtil::GfxBestMove(const SgUctSearch& search, SgBlackWhite toPlay,
