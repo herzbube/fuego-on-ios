@@ -11,19 +11,20 @@
 #ifndef GOUCT_ADDITIVEKNOWLEDGEFUEGO_H
 #define GOUCT_ADDITIVEKNOWLEDGEFUEGO_H
 
-#include "GoUctAdditiveKnowledge.h"
-#include "GoUctPlayoutPolicy.h"
+#include "GoAdditiveKnowledge.h"
 
 //----------------------------------------------------------------------------
 
 class GoUctAdditiveKnowledgeFuego
-    : public GoUctAdditiveKnowledgeStdProb
+    : public GoAdditiveKnowledgeStdProb
 {
 public:
+    /** TODO tunable constant */
     static const float VALUE_MULTIPLIER;
 
     GoUctAdditiveKnowledgeFuego(const GoBoard& bd);
 
+    /** Apply as additive predictor */
     void ProcessPosition(std::vector<SgUctMoveInfo>& moves);
 };
 

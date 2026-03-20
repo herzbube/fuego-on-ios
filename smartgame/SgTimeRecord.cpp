@@ -115,6 +115,13 @@ void SgTimeRecord::SuspendClock()
     }
 }
 
+void SgTimeRecord::SetTimeLeft(SgBlackWhite color, double timeLeft)
+{
+    m_timeLeft[color] = timeLeft;
+    if (color == m_player)
+        m_timeOfLastUpdate = SgTime::Get();
+}
+
 void SgTimeRecord::SetClock(SgNode& node, SgBlackWhite player, double time)
 {
     node.SetRealProp(SgProp::PlayerProp(SG_PROP_TIME_BLACK, player), time);
@@ -125,6 +132,10 @@ void SgTimeRecord::SetClock(SgNode& node, SgBlackWhite player, double time)
     {
         m_timeLeft[player] = OTPeriod();
         m_movesLeft[player] = OTNumMoves();
+    }
+    else
+    {
+      m_movesLeft[player] = 0;
     }
 }
 

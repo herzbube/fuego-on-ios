@@ -31,9 +31,9 @@ namespace
                       const SgVector<SgPoint>& targetBlocks,
                       SgVector<SgPoint>& ladderCaptureBlocks)
     {
-        for (SgVectorIterator<SgPoint> it(targetBlocks); it; ++it)
+        for (SgVectorIterator<SgPoint> blit(targetBlocks); blit; ++blit)
         {
-            const SgPoint block = *it;
+            const SgPoint block = *blit;
             if (  bd.NumLiberties(block) == 2
                && bd.IsColor(block, bd.ToPlay())
                )
@@ -79,7 +79,8 @@ namespace
 
 GoUctLadderKnowledge::GoUctLadderKnowledge(const GoBoard& bd,
                            GoUctKnowledge& knowledge)
-                           : m_bd(bd), m_knowledge(knowledge)
+                           : m_bd(bd), m_knowledge(knowledge),
+                             m_weight(1.0)
 { }
 
 void GoUctLadderKnowledge::InitializeLadderAttackMoves()
@@ -116,12 +117,13 @@ void GoUctLadderKnowledge::Initialize2LibTacticsLadderMoves()
     CheckLadders(m_bd, atMostTwoLibBlocks, blocks2LibsLadder);
 
     SgVector<SgPoint> good2LibTacticMove; // ladder moves to capture opponents
-    for (SgVectorIterator<SgPoint> it(blocks2LibsLadder);  it; ++it)
+    for (SgVectorIterator<SgPoint> blit(blocks2LibsLadder); blit; ++blit)
     {
-        const SgPoint anchor = *it;
-        for (GoAdjBlockIterator<GoBoard> it(m_bd, anchor, 2); it; ++it)
+        const SgPoint anchor = *blit;
+        for (GoAdjBlockIterator<GoBoard> oppit(m_bd, anchor, 2);
+             oppit; ++oppit)
         {
-            const SgPoint oppAnchor = *it;
+            const SgPoint oppAnchor = *oppit;
             SG_ASSERT(oppAnchor == m_bd.Anchor(oppAnchor));
             if (m_bd.NumLiberties(oppAnchor) == 2)
             {
@@ -138,7 +140,7 @@ void GoUctLadderKnowledge::Initialize2LibTacticsLadderMoves()
     }
 
     for (SgVectorIterator<SgPoint> it(good2LibTacticMove); it; ++it)
-        m_knowledge.Add(*it, 1.0, GOOD_2_LIB_TACTICS_LADDER_BONUS);
+        Add(*it, 1.0, GOOD_2_LIB_TACTICS_LADDER_BONUS);
 }
 
 void GoUctLadderKnowledge::LadderAttack(SgPoint p)
@@ -155,7 +157,7 @@ void GoUctLadderKnowledge::LadderAttack(SgPoint p)
     for (SgVectorIterator<SgPoint> it(liberties); it; ++it)
     {
         if (IsLadderCaptureMove(m_bd, p, *it)) 
-            m_knowledge.Add(*it, 1.0, LADDER_CAPTURE_BONUS);
+            Add(*it, 1.0, LADDER_CAPTURE_BONUS);
     }
 }
 
@@ -170,13 +172,13 @@ void GoUctLadderKnowledge::LadderDefense(SgPoint p)
     if (escapeMoves.IsEmpty()) // Do not try to escape
     {
         if (! MightBeNakadeStones(m_bd, p))
-            m_knowledge.Initialize(m_bd.TheLiberty(p), 
-            					   0.0, BAD_LADDER_ESCAPE_PENALTY);
+            Initialize(m_bd.TheLiberty(p),
+                       0.0, BAD_LADDER_ESCAPE_PENALTY);
     }
     else // Can escape, running away may be good.
     {
         for (SgVectorIterator<SgPoint> it(escapeMoves); it; ++it)
-            m_knowledge.Add(*it, 1.0, GOOD_LADDER_ESCAPE_BONUS);
+            Add(*it, 1.0, GOOD_LADDER_ESCAPE_BONUS);
     }
 }
 

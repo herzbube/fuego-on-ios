@@ -19,6 +19,7 @@
 #include <fstream>
 #include <sstream>
 #include "FuegoMainEngine.h"
+#include "FuegoMainUtil.h"
 #include "GoBook.h"
 #include "GoInit.h"
 #include "SgDebug.h"
@@ -31,14 +32,13 @@ using boost::filesystem::path;
 using std::ostream;
 using std::string;
 using std::vector;
-using namespace boost::filesystem;
 namespace po = boost::program_options;
 
 //----------------------------------------------------------------------------
 
 namespace {
 
-bool LoadBookFile(GoBook& book, const path& file)
+bool LoadBookFile(GoBook& book, const boost::filesystem::path& file)
 {
     std::string nativeFile = SgStringUtil::GetNativeFileName(file);
     SgDebug() << "Loading opening book from '" << nativeFile << "'... ";
@@ -61,31 +61,6 @@ bool LoadBookFile(GoBook& book, const path& file)
     return true;
 }
 
-/** @name Settings from command line options */
-// @{
-
-/** Use opening book */
-bool g_useBook = true;
-
-/** Allow handicap games */
-bool g_allowHandicap = true;
-
-bool g_quiet = false;
-
-int g_fixedBoardSize;
-
-int g_maxGames;
-
-string g_config;
-
-const char* g_programPath;
-
-int g_srand;
-
-vector<string> g_inputFiles;
-
-// @} // @name
-
 /** Get program directory from program path.
     @param programPath Program path taken from @c argv[0] in
     @c main. According to ANSI C, this can be @c 0. */
@@ -93,31 +68,7 @@ path GetProgramDir(const char* programPath)
 {
     if (programPath == 0)
         return "";
-    # if defined(BOOST_FILESYSTEM_VERSION)
-        SG_ASSERT (  BOOST_FILESYSTEM_VERSION == 2
-                  || BOOST_FILESYSTEM_VERSION == 3);
-    #endif
-
-    #if (defined(BOOST_FILESYSTEM_VERSION) && (BOOST_FILESYSTEM_VERSION == 3))
-        return path(programPath).parent_path();
-    #else
-        return path(programPath, boost::filesystem::native).parent_path();
-    #endif	
-}
-
-/** Check that @a option1 and @a option2 are not specified at the same time. */
-void MutuallyExclusiveOptions(const po::variables_map& vm,
-                              const char* option1, const char* option2)
-{
-    if (0 == vm.count(option1) || 0 == vm.count(option2))
-        return;
-    if (vm[option1].defaulted() || vm[option2].defaulted())
-        return;
-    string errorMessage = "Options '" + string(option1)
-                          + "' and '" + string(option2)
-                          + "' cannot be specified at the same time.";
-    SgDebug() << errorMessage << std::endl;
-    throw std::exception();
+    return path(programPath).parent_path();
 }
 
 path GetTopSourceDir()
@@ -134,36 +85,52 @@ void Help(po::options_description& desc, ostream& out)
     out << "Usage: fuego [options] [input files]\n" << desc << "\n";
 }
 
-/** Returns normally if no error occurred. Returns true if program should
-    continue running, false if program should be terminated (e.g.
-    because help was requested). In the latter case, exit code 0 should
-    be used.
+struct CommandLineOptions {
 
-    Throws an exception of undefined type if any error occurs. The
-    program should be terminated in response using an exit code != 0. */
-bool ParseOptions(int argc, char** argv)
+    /** Use opening book */
+    bool m_useBook;
+
+    /** Allow handicap games */
+    bool m_allowHandicap;
+
+    bool m_quiet;
+
+    int m_fixedBoardSize;
+
+    int m_maxGames;
+
+    string m_config;
+
+    const char* m_programPath;
+    
+    int m_srand;
+    
+    vector<string> m_inputFiles;
+};
+
+bool ParseOptions(int argc, char** argv, struct CommandLineOptions& options)
 {
     po::options_description normalOptions("Options");
     normalOptions.add_options()
         ("config", 
-         po::value<std::string>(&g_config)->default_value(""),
+         po::value<std::string>(&options.m_config)->default_value(""),
          "execute GTP commands from file before starting main command loop")
         ("help", "Displays this help and exit")
         ("maxgames", 
-         po::value<int>(&g_maxGames)->default_value(-1),
+         po::value<int>(&options.m_maxGames)->default_value(-1),
          "make clear_board fail after n invocations")
         ("nobook", "don't automatically load opening book")
         ("nohandicap", "don't support handicap commands")
         ("quiet", "don't print debug messages")
         ("srand", 
-         po::value<int>(&g_srand)->default_value(0),
+         po::value<int>(&options.m_srand)->default_value(0),
          "set random seed (-1:none, 0:time(0))")
         ("size", 
-         po::value<int>(&g_fixedBoardSize)->default_value(0),
+         po::value<int>(&options.m_fixedBoardSize)->default_value(0),
          "initial (and fixed) board size");
     po::options_description hiddenOptions;
     hiddenOptions.add_options()
-        ("input-file", po::value<vector<string> >(&g_inputFiles),
+        ("input-file", po::value<vector<string> >(&options.m_inputFiles),
          "input file");
     po::options_description allOptions;
     allOptions.add(normalOptions).add(hiddenOptions);
@@ -176,15 +143,9 @@ bool ParseOptions(int argc, char** argv)
                                      positional(positionalOptions).run(), vm);
         po::notify(vm);
     }
-    catch (const std::exception& e)
-    {
-        SgDebug() << e.what() << '\n';
-        throw;
-    }
     catch (...)
     {
         Help(normalOptions, std::cerr);
-        throw;
     }
     if (vm.count("help"))
     {
@@ -192,11 +153,11 @@ bool ParseOptions(int argc, char** argv)
         return false;
     }
     if (vm.count("nobook"))
-        g_useBook = false;
+        options.m_useBook = false;
     if (vm.count("nohandicap"))
-        g_allowHandicap = false;
+        options.m_allowHandicap = false;
     if (vm.count("quiet"))
-        g_quiet = true;
+        options.m_quiet = true;
     return true;
 }
 
@@ -204,7 +165,7 @@ void PrintStartupMessage()
 {
     SgDebug() <<
         "Fuego " << FuegoMainUtil::Version() << "\n"
-        "Copyright (C) 2009-2013 by the authors of the Fuego project.\n"
+        "Copyright (C) 2009-2015 by the authors of the Fuego project.\n"
         "This program comes with ABSOLUTELY NO WARRANTY. This is\n"
         "free software and you are welcome to redistribute it under\n"
         "certain conditions. Type `fuego-license' for details.\n\n";
@@ -218,6 +179,7 @@ void FuegoMainUtil::LoadBook(GoBook& book,
                              const boost::filesystem::path& programDir)
 {
     const std::string fileName = "book.dat";
+    using boost::filesystem::path;
     #ifdef ABS_TOP_SRCDIR
         if (LoadBookFile(book, path(ABS_TOP_SRCDIR) / "book" / fileName))
             return;
@@ -250,14 +212,20 @@ std::string FuegoMainUtil::Version()
 
 int FuegoMainUtil::FuegoMain(int argc, char** argv, std::istream* gtpClientInputStream, std::ostream* gtpClientOutputStream)
 {
+    /** Settings from command line options */
+    struct CommandLineOptions options;
+    options.m_useBook = true;
+    options.m_allowHandicap = true;
+    options.m_quiet = false;
+
     if (argc > 0 && argv != 0)
     {
-        g_programPath = argv[0];
+        options.m_programPath = argv[0];
         SgPlatform::SetProgramDir(GetProgramDir(argv[0]));
         SgPlatform::SetTopSourceDir(GetTopSourceDir());
         try
         {
-            bool okAndContinue = ParseOptions(argc, argv);
+            bool okAndContinue = ParseOptions(argc, argv, options);
             if (! okAndContinue)
                 return 0;
         }
@@ -266,28 +234,26 @@ int FuegoMainUtil::FuegoMain(int argc, char** argv, std::istream* gtpClientInput
             SgDebug() << e.what() << "\n";
             return 1;
         }
-        catch (...)
-        {
-            return 1;
-        }
     }
-    if (g_quiet)
+    if (options.m_quiet)
         SgDebugToNull();
     try
     {
         SgInit();
         GoInit();
         PrintStartupMessage();
-        SgRandom::SetSeed(g_srand);
-        FuegoMainEngine engine(g_fixedBoardSize, g_programPath, ! g_allowHandicap);
+        SgRandom::SetSeed(options.m_srand);
+        FuegoMainEngine engine(options.m_fixedBoardSize,
+                               options.m_programPath,
+                               ! options.m_allowHandicap);
         GoGtpAssertionHandler assertionHandler(engine);
-        if (g_maxGames >= 0)
-            engine.SetMaxClearBoard(g_maxGames);
-        if (g_useBook)
+        if (options.m_maxGames >= 0)
+            engine.SetMaxClearBoard(options.m_maxGames);
+        if (options.m_useBook)
             FuegoMainUtil::LoadBook(engine.Book(), 
             					    SgPlatform::GetProgramDir());
-        if (g_config != "")
-            engine.ExecuteFile(g_config);
+        if (options.m_config != "")
+            engine.ExecuteFile(options.m_config);
 
         std::istream* pInputStream;
         if (gtpClientInputStream)
@@ -301,11 +267,11 @@ int FuegoMainUtil::FuegoMain(int argc, char** argv, std::istream* gtpClientInput
         else
             pOutputStream = &std::cout;
 
-        if (! g_inputFiles.empty())
+        if (! options.m_inputFiles.empty())
         {
-            for (size_t i = 0; i < g_inputFiles.size(); i++)
+            for (size_t i = 0; i < options.m_inputFiles.size(); i++)
             {
-                string file = g_inputFiles[i];
+                string file = options.m_inputFiles[i];
                 std::ifstream fin(file.c_str());
                 if (! fin)
                     throw SgException(boost::format("Error file '%1%'") 

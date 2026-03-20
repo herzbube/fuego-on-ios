@@ -9,7 +9,7 @@
 #include <iostream>
 #include <limits>
 
-using namespace std;
+using std::numeric_limits;
 
 //----------------------------------------------------------------------------
 
@@ -27,10 +27,8 @@ std::ostream& operator<<(std::ostream& stream, const SgRect& rect)
     return stream;
 }
 
-void SgRect::Include(SgPoint p)
+void SgRect::IncludeXY(int x, int y)
 {
-    int x = SgPointUtil::Col(p);
-    int y = SgPointUtil::Row(p);
     if (x < m_left)
         m_left = x;
     if (x > m_right)
@@ -39,6 +37,13 @@ void SgRect::Include(SgPoint p)
         m_top = y;
     if (y > m_bottom)
         m_bottom = y;
+}
+
+void SgRect::Include(SgPoint p)
+{
+    int x = SgPointUtil::Col(p);
+    int y = SgPointUtil::Row(p);
+    IncludeXY(x, y);
 }
 
 void SgRect::Include(const SgRect& rect)
@@ -55,10 +60,10 @@ void SgRect::Include(const SgRect& rect)
 
 void SgRect::Intersect(const SgRect& rect)
 {
-    m_left = max(m_left, rect.m_left);
-    m_right = min(m_right, rect.m_right);
-    m_top = max(m_top, rect.m_top);
-    m_bottom = min(m_bottom, rect.m_bottom);
+    m_left   = std::max(m_left, rect.m_left);
+    m_right  = std::min(m_right, rect.m_right);
+    m_top    = std::max(m_top, rect.m_top);
+    m_bottom = std::min(m_bottom, rect.m_bottom);
 }
 
 SgPoint SgRect::Center() const

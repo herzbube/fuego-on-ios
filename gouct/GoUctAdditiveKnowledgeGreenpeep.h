@@ -1,14 +1,21 @@
 //----------------------------------------------------------------------------
-/** @file GoUctAdditiveKnowledgeGreenpeep.h */
+/** @file GoUctAdditiveKnowledgeGreenpeep.h 
+    Two types of predictors as originally received by Chris Rosin, and
+    following his approach in his Go program Greenpeep.
+    The pattern knowledge here comes in two flavors, with slightly different 
+    format and is learned with different learning strategies.
+    The size of the patterns is 12 points "diamond" shape patterns,
+    consisting of the 4 neighbors, the 4 diagonal neighbors
+    and the 4 points at distance (2,0) away from the center.
+    The center point of the pattern must be empty, and the learned knowledge 
+    estimates the value of a move in the center.
+*/
 //----------------------------------------------------------------------------
 
 #ifndef GOUCT_ADDITIVEKNOWLEDGEGREENPEEP_H
 #define GOUCT_ADDITIVEKNOWLEDGEGREENPEEP_H
 
-#include "GoUctAdditiveKnowledge.h"
-#include "GoUctPlayoutPolicy.h"
-#include <boost/static_assert.hpp>
-
+#include "GoAdditiveKnowledge.h"
 
 /* max 26-bit: 16-bit 8-neighbor core, 8-bit liberty & 2-away extension, 
 	1 bit "ko exists", 1 bit defensive move */
@@ -28,7 +35,7 @@ enum GoUctGreenpeepPatternType
 
 //----------------------------------------------------------------------------
 
-class GoUctAdditiveKnowledgeParamGreenpeep: public GoUctAdditiveKnowledgeParam
+class GoUctAdditiveKnowledgeParamGreenpeep: public GoAdditiveKnowledgeParam
 {
 private:
 public:
@@ -60,74 +67,49 @@ private:
 };
 
 /** Use Greenpeep-style pattern values to make predictions. */
-class GoUctAdditiveKnowledgeGreenpeep : public GoUctAdditiveKnowledge
+class GoUctAdditiveKnowledgeGreenpeep : public GoAdditiveKnowledge
 {
 public:
     GoUctAdditiveKnowledgeGreenpeep(const GoBoard& bd);
     ~GoUctAdditiveKnowledgeGreenpeep();
 
     /** The minimum value allowed by this predictor */
-    SgUctValue Minimum() const;
+    float MinValue() const;
 
-    bool ProbabilityBased() const;
+    GoPredictorType PredictorType() const;
 
     void ProcessPosition(std::vector<SgUctMoveInfo>& moves);
 
-    /** Print a pattern given its pattern code. 
-    	3 typical examples:
-
-        Example 1: the all empty pattern. @b shows its black turn (all patterns
-        are black turn). Because the four neighbor points of @b are empty, the
-        pattern shows the 4 points one step further in the four directions.
-        They are all empty in this example.
-                [  ]
-            [  ][  ][  ]
-        [  ][  ][@b][  ][  ]
-            [  ][  ][  ]
-                [  ]
-
-        Example 2: this pattern has only 12 points.
-        Since b3, west of @b, is taken by black, the extra 2 bits are now 
-        used to encode the number of liberties (3) of this black block.
-
-        [##], two steps to the north, encodes the border.
-            [##]
-        [  ][  ][b ]
-        [b3][@b][  ][b ]
-        [b ][  ][b ]
-            [w ]
-
-        Example 3: an edge pattern. It is also a capture since w1 is a
-        white block with 1 liberty.
-            [##][b1][b ]
-        [##][##][@b][w1]
-            [##][  ][b ]
-                [  ]
-    */
-    static void PrintContext(unsigned int context, std::ostream& o);
-
-    /** The scaling factor for this predictor */
-    SgUctValue Scale() const;
-
 private:
+
+    void ProcessPosition9(std::vector<SgUctMoveInfo>& moves);
+
+    void ProcessPosition19(std::vector<SgUctMoveInfo>& moves);
+
     unsigned int m_contexts[SG_MAX_ONBOARD + 1];
 };
 
 //----------------------------------------------------------------------------
 
-inline SgUctValue GoUctAdditiveKnowledgeGreenpeep::Minimum() const
+inline float GoUctAdditiveKnowledgeGreenpeep::MinValue() const
 {
-	return ProbabilityBased() ? 0.0001f : 0.05f;
+	return PredictorType() == GO_PRED_TYPE_PROBABILITY_BASED ? 0.0001f
+                                                             : 0.05f;
 }
 
-inline bool GoUctAdditiveKnowledgeGreenpeep::ProbabilityBased() const
+inline GoPredictorType GoUctAdditiveKnowledgeGreenpeep::PredictorType() const
 {
-	return Board().Size() >= 15;
+	return Board().Size() >= 15 ? GO_PRED_TYPE_PROBABILITY_BASED
+                                : GO_PRED_TYPE_PUCB;
 }
 
-inline SgUctValue GoUctAdditiveKnowledgeGreenpeep::Scale() const
+inline void GoUctAdditiveKnowledgeGreenpeep::
+ProcessPosition(std::vector<SgUctMoveInfo>& moves)
 {
-	return 0.03f;
+    if (Board().Size() < 15)
+        ProcessPosition9(moves);
+    else
+        ProcessPosition19(moves);
 }
 
 //----------------------------------------------------------------------------

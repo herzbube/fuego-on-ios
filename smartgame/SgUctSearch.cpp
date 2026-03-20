@@ -28,9 +28,6 @@ using std::setprecision;
 using std::numeric_limits;
 using std::fixed;
 
-#define BOOST_VERSION_MAJOR (BOOST_VERSION / 100000)
-#define BOOST_VERSION_MINOR (BOOST_VERSION / 100 % 1000)
-
 //----------------------------------------------------------------------------
 
 namespace {
@@ -169,11 +166,7 @@ SgUctSearch::Thread::Thread(SgUctSearch& search,
       m_quit(false),
       m_threadReady(2),
       m_playFinishedLock(m_playFinishedMutex),
-#if BOOST_VERSION_MAJOR == 1 && BOOST_VERSION_MINOR <= 34
-      m_globalLock(search.m_globalMutex, false),
-#else
       m_globalLock(search.m_globalMutex, boost::defer_lock),
-#endif
       m_thread(Function(*this))
 {
     m_threadReady.wait();
@@ -500,6 +493,11 @@ SgUctSearch::FindBestChild(const SgUctNode& node,
             if (find(begin, end, child.Move()) != end)
                 continue;
         }
+        if (child.IsProvenLoss()) // Always choose winning move!
+        {
+            bestChild = &child;
+            break;
+        }
         if (  ! child.HasMean()
            && ! (  (  m_moveSelect == SG_UCTMOVESELECT_BOUND
                    || m_moveSelect == SG_UCTMOVESELECT_ESTIMATE
@@ -509,11 +507,6 @@ SgUctSearch::FindBestChild(const SgUctNode& node,
                 )
             )
             continue;
-        if (child.IsProvenLoss()) // Always choose winning move!
-        {
-            bestChild = &child;
-            break;
-        }
         SgUctValue value;
         switch (m_moveSelect)
         {
@@ -531,7 +524,7 @@ SgUctSearch::FindBestChild(const SgUctNode& node,
             break;
         default:
             SG_ASSERT(false);
-            value = SG_UCTMOVESELECT_VALUE;
+            value = child.MoveCount();
         }
         if (bestChild == 0 || value > bestValue)
         {
@@ -782,7 +775,7 @@ bool SgUctSearch::NeedToComputeKnowledge(const SgUctNode* current)
                 // threads fall through and do not waste time
                 // re-computing this knowledge.
                 m_tree.SetKnowledgeCount(*current, threshold);
-                SG_ASSERT(current->MoveCount());
+                SG_ASSERT(current->MoveCount() > 0);
                 return true;
             }
             return false;
@@ -806,13 +799,17 @@ void SgUctSearch::PrintSearchProgress(double currTime) const
 {
     const int MAX_SEQ_PRINT_LENGTH = 15;
     const SgUctValue MIN_MOVE_COUNT = 10;
-    SgUctValue rootMoveCount = m_tree.Root().MoveCount();
-    SgUctValue rootMean = m_tree.Root().Mean();
+    const SgUctValue rootMoveCount = m_tree.Root().MoveCount();
     std::ostringstream out;
     const SgUctNode* current = &m_tree.Root();
     bool hasKnowledge = current->KnowledgeCount() > 0;
-    out << (format("%s | %.3f | %.0f | %.1f ")
-            % SgTime::Format(currTime, true) % rootMean % rootMoveCount % m_statistics.m_movesInTree.Mean());
+    if (rootMoveCount > 0)
+    {
+        const SgUctValue rootMean = m_tree.Root().Mean();
+        out << (format("%s | %.3f | %.0f | %.1f ")
+                % SgTime::Format(currTime, true)
+                % rootMean % rootMoveCount % m_statistics.m_movesInTree.Mean());
+    }
     for (int i = 0; i <= MAX_SEQ_PRINT_LENGTH && current->HasChildren(); ++i)
     {
         current = FindBestChild(*current);
@@ -934,7 +931,7 @@ void SgUctSearch::PlayGame(SgUctThreadState& state, GlobalLock* lock)
 
 /** Backs up proven information. Last node of nodes is the newly
     proven node. */
-void SgUctSearch::PropagateProvenStatus(const vector<const SgUctNode*>& nodes)
+void SgUctSearch::PropagateProvenStatus(const std::vector<const SgUctNode*>& nodes)
 {
     if (nodes.size() <= 1) 
         return;
@@ -1252,7 +1249,9 @@ SgPoint SgUctSearch::SearchOnePly(SgUctValue maxGames, double maxTime,
     for (size_t i = 0; i < moves.size(); ++i)
     {
         SgDebug() << MoveString(moves[i].m_move) 
-                  << ' ' << statistics[i].Mean() << '\n';
+                  << ' ' << statistics[i].Mean()
+                  << ", " << statistics[i].Count() << " Simulations"
+                  << '\n';
         if (bestMove == SG_NULLMOVE || statistics[i].Mean() > value)
         {
             bestMove = moves[i].m_move;

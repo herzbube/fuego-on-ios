@@ -7,7 +7,8 @@
 #include "SgSystem.h"
 #include "GoUctKnowledgeFactory.h"
 
-#include "GoUctAdditiveKnowledge.h"
+#include "GoUctFeatureKnowledge.h"
+#include "GoAdditiveKnowledge.h"
 #include "GoUctAdditiveKnowledgeFuego.h"
 #include "GoUctAdditiveKnowledgeGreenpeep.h"
 #include "GoUctAdditiveKnowledgeMultiple.h"
@@ -15,17 +16,22 @@
 //----------------------------------------------------------------------------
 GoUctKnowledgeFactory::GoUctKnowledgeFactory(
     const GoUctPlayoutPolicyParam& param) :
-    m_param(param)
+    m_param(param),
+    m_featureKnowledgeFactory()
 { }
 
 GoUctKnowledgeFactory::~GoUctKnowledgeFactory()
 {
 }
 
-GoUctAdditiveKnowledge* GoUctKnowledgeFactory::Create(const GoBoard& bd)
+GoAdditiveKnowledge* GoUctKnowledgeFactory::Create(const GoBoard& bd)
 {
-	KnowledgeType type = m_param.m_knowledgeType;
-    
+	return CreateByType(bd, m_param.m_knowledgeType);
+}
+
+GoAdditiveKnowledge*
+GoUctKnowledgeFactory::CreateByType(const GoBoard& bd, GoKnowledgeType type)
+{
     switch(type)
     {
     case KNOWLEDGE_NONE:
@@ -36,14 +42,16 @@ GoUctAdditiveKnowledge* GoUctKnowledgeFactory::Create(const GoBoard& bd)
     case KNOWLEDGE_RULEBASED:
     	return new GoUctAdditiveKnowledgeFuego(bd);
     break;
+    case KNOWLEDGE_FEATURES:
+    	return m_featureKnowledgeFactory.Create(bd);
+    break;
     case KNOWLEDGE_BOTH:
     {
         GoUctAdditiveKnowledgeFuego* f = new GoUctAdditiveKnowledgeFuego(bd);
-        SgUctValue scale = f->Scale();
-        SgUctValue minimum = f->Minimum();
+        float minimum = f->MinValue();
 
         GoUctAdditiveKnowledgeMultiple* m =
-        new GoUctAdditiveKnowledgeMultiple(bd, scale,  minimum,
+        new GoUctAdditiveKnowledgeMultiple(bd, minimum,
                                            m_param.m_combinationType);
         m->AddKnowledge(f);
         m->AddKnowledge(

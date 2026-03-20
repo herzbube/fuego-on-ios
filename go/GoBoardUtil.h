@@ -102,6 +102,9 @@ namespace GoBoardUtil
     void AdjacentBlocks(const GoBoard& bd, SgPoint p, int maxLib,
                         SgVector<SgPoint>* blocks);
 
+    /** compute the legal moves on the board, not including SG_PASS */
+    GoPointList AllLegalMoves(const GoBoard& bd);
+
     /** Estimate second order liberties of point p for given block
         This is fast and approximate, may double count libs */
     int Approx2Libs(const GoBoard& board, SgPoint block, SgPoint p,
@@ -132,6 +135,11 @@ namespace GoBoardUtil
     void BlocksAdjacentToPoints(const GoBoard& bd, const SgPointSet& points,
                                 SgBlackWhite c, SgVector<SgPoint>* anchors);
 
+    /** Add to moves: captures of any blocks adjacent to anchor */
+    template<class BOARD>
+    bool CaptureAdjacentBlocks(const BOARD& bd, SgPoint anchor,
+                               GoPointList& moves);
+
     /** Compute the common fate graph distance from all points to a given
         point.
         The common fate graph distance ist the shortest path between points
@@ -147,7 +155,7 @@ namespace GoBoardUtil
                                int maxDist = std::numeric_limits<int>::max());
 
     /** Is p contained in anchor[] ?
-        anchor[] must be terminated by END_POINT. */
+        anchor[] must be terminated by SG_ENDPOINT. */
     bool ContainsAnchor(const SgPoint anchor[], const SgPoint p);
 
    /** Get diagonal points with a color.
@@ -183,6 +191,12 @@ namespace GoBoardUtil
     template<class BOARD>
     SgPoint FindDiagNeighbor(const BOARD& bd, SgPoint p, SgEmptyBlackWhite c);
     
+    /** Check, if playing at a lib gains liberties.
+     Does not handle capturing moves for efficiency. Not needed, because
+     capturing moves have a higher priority in the playout. */
+    template<class BOARD>
+    bool GainsLiberties(const BOARD& bd, SgPoint anchor, SgPoint lib);
+
     /** Include move in list if it is legal */
     bool GenerateIfLegal(const GoBoard& bd,
                          SgPoint move,
@@ -259,6 +273,15 @@ namespace GoBoardUtil
         in atari. */
     bool IsSnapback(const GoBoard& bd, SgPoint p);
 
+    /** Check if playing at a lib reduces own liberties or not.
+     Handles connection to pther blocks, but
+     does not handle the case where we gain liberties by capture.
+     This is assumed to be a higher priority feature that is already
+     handled elsewhere.
+     */
+    template<class BOARD>
+    bool KeepsOrGainsLiberties(const BOARD& bd, SgPoint anchor, SgPoint lib);
+
     /** all points on lines [from..to] */
     SgPointSet Lines(const GoBoard& bd, SgGrid from, SgGrid to);
 
@@ -288,6 +311,9 @@ namespace GoBoardUtil
         adding the points. */
     void NeighborsOfColor(const GoBoard& bd, SgPoint p, int c,
                           SgVector<SgPoint>* neighbors);
+
+    /** Given a 2 liberty block and one of its liberties, return the other. */
+    SgPoint OtherLiberty(const GoBoard& bd, SgPoint anchor, SgPoint lib1);
 
     /** Play a move if legal
         @param bd The board.
@@ -466,6 +492,54 @@ namespace GoBoardUtil
 
 } // namespace GoBoardUtil
 
+//----------------------------------------------------------------------------
+namespace {
+template<class BOARD>
+bool AchievesLibertyTarget(const BOARD& bd, SgPoint anchor,
+                           SgPoint lib, int nu)
+{
+    SG_ASSERT(bd.IsEmpty(lib));
+    SG_ASSERT(bd.Anchor(anchor) == anchor);
+    SG_ASSERT(bd.IsLibertyOfBlock(lib, anchor));
+
+    const SgBlackWhite color = bd.GetStone(anchor);
+    for (GoNb4Iterator<BOARD> it(bd, lib); it; ++it)
+    {
+        const SgEmptyBlackWhite c = bd.GetColor(*it);
+        if (c == SG_EMPTY)
+        {
+            if (! bd.IsLibertyOfBlock(*it, anchor))
+                if (++nu >= 0)
+                    return true;
+        }
+        else if (c == color) // merge with block
+        {
+            const SgPoint anchor2 = bd.Anchor(*it);
+            if (anchor != anchor2)
+                for (typename BOARD::LibertyIterator lit(bd, anchor2); lit;
+                     ++lit)
+                    if (! bd.IsLibertyOfBlock(*lit, anchor))
+                        if (++nu >= 0)
+                            return true;
+        }
+        // else capture - not handled, see function documentation
+    }
+    return false;
+}
+} // namespace
+
+//----------------------------------------------------------------------------
+
+inline GoPointList GoBoardUtil::AllLegalMoves(const GoBoard& bd)
+{
+    GoPointList legalBoardMoves;
+    for (GoBoard::Iterator it(bd); it; ++it)
+        if (bd.IsLegal(*it))
+            legalBoardMoves.PushBack(*it);
+    return legalBoardMoves;
+}
+
+
 inline bool GoBoardUtil::ContainsAnchor(const SgPoint anchor[],
                                         const SgPoint p)
 {
@@ -605,6 +679,40 @@ bool GoBoardUtil::IsSimpleChain(const BOARD& bd,
     return false;
 }
 
+template<class BOARD>
+inline bool GoBoardUtil::GainsLiberties(const BOARD& bd,
+                                      SgPoint anchor,
+                                      SgPoint lib)
+{
+    int nu = -2; // need 2 new libs (lose 1 lib by playing on lib itself)
+    return AchievesLibertyTarget(bd, anchor, lib, nu);
+}
+
+template<class BOARD>
+inline bool GoBoardUtil::KeepsOrGainsLiberties(const BOARD& bd,
+                                             SgPoint anchor,
+                                             SgPoint lib)
+{
+    int nu = -1; // need 1 new liberty (loses 1 lib by playing on lib itself)
+    return AchievesLibertyTarget(bd, anchor, lib, nu);
+}
+
+inline SgPoint GoBoardUtil::OtherLiberty(const GoBoard& bd,
+                                         SgPoint anchor,
+                                         SgPoint lib1)
+{
+    SG_ASSERT(bd.NumLiberties(anchor) == 2);
+    SG_ASSERT(bd.IsLibertyOfBlock(lib1, anchor));
+    GoBoard::LibertyIterator it(bd, anchor);
+    SG_ASSERT(it);
+    if (*it != lib1)
+        return *it;
+    ++it;
+    SG_ASSERT(it);
+    SG_ASSERT(*it != lib1);
+    return *it;
+}
+
 inline bool GoBoardUtil::PlayIfLegal(GoBoard& bd, SgPoint p)
 {
     return PlayIfLegal(bd, p, bd.ToPlay());
@@ -695,9 +803,9 @@ inline bool GoBoardUtil::SelfAtariForColor(const BOARD& bd, SgPoint p,
     SgPoint lib = SG_NULLPOINT;
     bool hasOwnNb = false;
     bool hasCapture = false;
-    for (GoNb4Iterator<BOARD> it(bd, p); it; ++it)
+    for (GoNb4Iterator<BOARD> nbit(bd, p); nbit; ++nbit)
     {
-        const SgPoint nb = *it;
+        const SgPoint nb = *nbit;
         const SgBlackWhite nbColor = bd.GetColor(nb);
         if (nbColor == SG_EMPTY)
         {
@@ -730,10 +838,10 @@ inline bool GoBoardUtil::SelfAtariForColor(const BOARD& bd, SgPoint p,
             {
                 if (lib == SG_NULLPOINT)
                 {
-                    lib = *it;
+                    lib = nb;
                     hasCapture = true;
                 }
-                else if (lib != *it)
+                else if (lib != nb)
                     return false;
             }
         }
@@ -769,9 +877,9 @@ bool GoBoardUtil::SelfAtari(const BOARD& bd, SgPoint p, int& numStones)
     SgPoint lib = SG_NULLPOINT;
     bool hasOwnNb = false;
     bool hasCapture = false;
-    for (GoNb4Iterator<BOARD> it(bd, p); it; ++it)
+    for (GoNb4Iterator<BOARD> nbit(bd, p); nbit; ++nbit)
     {
-        const SgPoint nb = *it;
+        const SgPoint nb = *nbit;
         const SgBlackWhite nbColor = bd.GetColor(nb);
         if (nbColor == SG_EMPTY)
         {
@@ -804,10 +912,10 @@ bool GoBoardUtil::SelfAtari(const BOARD& bd, SgPoint p, int& numStones)
             {
                 if (lib == SG_NULLPOINT)
                 {
-                    lib = *it;
+                    lib = nb;
                     hasCapture = true;
                 }
-                else if (lib != *it)
+                else if (lib != nb)
                     return false;
             }
         }
@@ -841,7 +949,7 @@ bool GoBoardUtil::SelfAtari(const BOARD& bd, SgPoint p, int& numStones)
 }
 
 // Need a forward-declaration for function AtariDefenseMoves()
-// @todo move Iterators its their file
+// @todo move Iterators to their own file
 template<class BOARD> class GoAdjBlockIterator;
 
 template<class BOARD>
@@ -884,6 +992,22 @@ inline bool GoBoardUtil::AtariDefenseMoves(const BOARD& bd,
         }
     }
     return ! moves.IsEmpty();
+}
+
+template<class BOARD>
+bool GoBoardUtil::CaptureAdjacentBlocks(const BOARD& bd, SgPoint anchor,
+                                        GoPointList& moves)
+{
+    SG_ASSERT(bd.Anchor(anchor) == anchor);
+    bool found = false;
+    for (GoAdjBlockIterator<BOARD> it(bd, anchor, 1); it; ++it)
+    {
+        SgPoint oppLiberty = bd.TheLiberty(*it);
+        moves.PushBack(oppLiberty);
+        // we do not check legality and duplicates here.
+        found = true;
+    }
+    return found;
 }
 
 template<class BOARD>
@@ -988,13 +1112,14 @@ std::ostream& GoWriteBoard(std::ostream& out, const BOARD& bd)
         buffer << "   ";
     else
         buffer << "  ";
-    SgGrid col;
-    char c;
-    for (col = 1, c = 'A'; col <= size; ++col, ++c)
     {
-        if (c == 'I')
-            ++c;
-        buffer << c << ' ';
+        SgGrid col = 1;
+        for (char c = 'A'; col <= size; ++col, ++c)
+        {
+            if (c == 'I')
+                ++c;
+            buffer << c << ' ';
+        }
     }
     buffer << '\n';
     for (SgGrid row = size; row >= 1; --row)
@@ -1042,11 +1167,14 @@ std::ostream& GoWriteBoard(std::ostream& out, const BOARD& bd)
         buffer << "   ";
     else
         buffer << "  ";
-    for (col = 1, c = 'A'; col <= size; ++col, ++c)
     {
-        if (c == 'I')
-            ++c;
-        buffer << c << ' ';
+        SgGrid col = 1;
+        for (char c = 'A'; col <= size; ++col, ++c)
+        {
+            if (c == 'I')
+                ++c;
+            buffer << c << ' ';
+        }
     }
     buffer << '\n';
     out << buffer.str();
@@ -1261,7 +1389,7 @@ private:
 //----------------------------------------------------------------------------
 
 /** Iterate through the anchors of all the blocks adjacent to the given
-    point. */
+    empty point. */
 class GoNeighborBlockIterator
     : public SgPointIterator
 {

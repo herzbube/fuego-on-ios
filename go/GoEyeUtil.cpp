@@ -131,9 +131,9 @@ GoEyeStatus BulkyFiveNakade(const GoBoard& bd,
         // check if both empty points adjacent to block. if yes, nakade.
         // if no, alive.
         {
-            SgPointSet empty = (points & bd.AllEmpty());
-            SG_ASSERT(empty.IsSize(2));
-            for (SgSetIterator it(empty); it; ++it)
+            SgPointSet emptyPoints = points & bd.AllEmpty();
+            SG_ASSERT(emptyPoints.IsSize(2));
+            for (SgSetIterator it(emptyPoints); it; ++it)
             {
                 if (bd.NumNeighbors(*it, stoneColor) == 0)
                 {
@@ -194,7 +194,7 @@ GoEyeStatus Special2x3Cases(const GoBoard& bd,
                 // .o.
                 if (   code == 2
                     && code8 == 20
-                       )
+                   )
                 {
                     const SgPoint p1 = (stones & bd.LineSet(1)).PointOf();
                     if (bd.HasNeighbors(p1, SgOppBW(stoneColor)))
@@ -205,7 +205,7 @@ GoEyeStatus Special2x3Cases(const GoBoard& bd,
                      // .o.
                 if (   code == 3
                     && code8 == 120
-                    )
+                   )
                 {
                     const SgPoint p1 = (stones & bd.LineSet(1)).PointOf();
                     if (bd.HasNeighbors(p1, SgOppBW(stoneColor)))
@@ -354,9 +354,9 @@ int GoEyeUtil::DegreeCode(const SgPointSet& points)
 {
     int degrees[5] = {0, 0, 0, 0, 0};
     
-    for (SgSetIterator it(points); it; ++it)
+    for (SgSetIterator pit(points); pit; ++pit)
     {
-        const SgPoint p(*it);
+        const SgPoint p(*pit);
         int nbs = 0;
         for (SgNb4Iterator it(p); it; ++it)
         {
@@ -376,9 +376,9 @@ long GoEyeUtil::DegreeCode8(const SgPointSet& points)
 {
     int degrees[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
     
-    for (SgSetIterator it(points); it; ++it)
+    for (SgSetIterator pit(points); pit; ++pit)
     {
-        const SgPoint p(*it);
+        const SgPoint p(*pit);
         int nbs = 0;
         for (SgNb8Iterator it(p); it; ++it)
         {
@@ -420,8 +420,8 @@ bool GoEyeUtil::IsPossibleEye(const GoBoard& board, SgBlackWhite color,
     if (board.Line(p) == 1) // corner or edge
     {
         const int nuOwn = (board.Pos(p) == 1) ? 2 : 4;
-        if ( board.Num8Neighbors(p, color) == nuOwn
-             && board.Num8EmptyNeighbors(p) == 1
+        if (  board.Num8Neighbors(p, color) == nuOwn
+           && board.Num8EmptyNeighbors(p) == 1
            )
         {     
             isPossibleEye = true;
@@ -430,17 +430,17 @@ bool GoEyeUtil::IsPossibleEye(const GoBoard& board, SgBlackWhite color,
     else // in center
     {
         // have all neighbors, and 2 diagonals, and can get a third
-        if (    board.NumNeighbors(p, color) == 4
-             && board.NumDiagonals(p, color) == 2
-             && board.NumEmptyDiagonals(p) > 0
+        if (  board.NumNeighbors(p, color) == 4
+           && board.NumDiagonals(p, color) == 2
+           && board.NumEmptyDiagonals(p) > 0
            )
         {     
             isPossibleEye = true;
         }
         // have 3 of 4 neighbors, can get the 4th, and have enough diagonals
-        else if (   board.NumNeighbors(p, color) == 3
-                 && board.NumNeighbors(p, opp) == 0
-                 && board.NumDiagonals(p, color) >= 3 
+        else if (  board.NumNeighbors(p, color) == 3
+                && board.NumNeighbors(p, opp) == 0
+                && board.NumDiagonals(p, color) >= 3
                 )
         {
             isPossibleEye = true;
@@ -456,9 +456,9 @@ bool GoEyeUtil::NumberOfMoveToEye(const GoBoard& board, SgBlackWhite color,
     SG_ASSERT(board.IsEmpty(p));
     SgBlackWhite att = SgOppBW(color);  // attacker
 
-    if ( board.Line(p) == 1) // corner or edge
+    if (board.Line(p) == 1) // corner or edge
     {
-        if ( board.Num8Neighbors(p, att) > 0 )
+        if (board.Num8Neighbors(p, att) > 0)
             return false;
         else
         {
@@ -468,9 +468,9 @@ bool GoEyeUtil::NumberOfMoveToEye(const GoBoard& board, SgBlackWhite color,
     }
     else // in center
     {
-        if ( board.Num8Neighbors(p, att) >= 2 )
+        if (board.Num8Neighbors(p, att) >= 2)
             return false;
-        else if ( board.NumNeighbors(p, att) > 0 )
+        else if (board.NumNeighbors(p, att) > 0)
             return false;
         else // only 0 or 1 attacker point and not in NB4
         {
